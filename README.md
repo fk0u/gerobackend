@@ -48,6 +48,28 @@ Gerobaks API merupakan layanan backend yang menangani autentikasi, manajemen jad
 | Storage        | Local disk (pengembangan), siap S3 kompatibel        |
 | Testing        | PHPUnit, Pest (optional), Laravel test suite         |
 
+## 📘 Dokumentasi API (Swagger/OpenAPI)
+
+-   File spesifikasi utama tersedia di `docs/openapi.yaml`.
+-   Seluruh `summary` dan `description` memiliki versi Bahasa Indonesia (**ID**) dan Inggris (**EN**).
+-   Bukalah menggunakan tool seperti [Swagger UI](https://github.com/swagger-api/swagger-ui), [Stoplight Studio](https://stoplight.io/studio/), atau ekstensi VS Code "OpenAPI".
+
+### Menjalankan Swagger UI Lokal
+
+```bash
+git clone https://github.com/swagger-api/swagger-ui.git
+cd swagger-ui
+npm install
+npm start
+```
+
+Setelah server berjalan di `http://localhost:3200/`, masukkan URL file `docs/openapi.yaml` Anda (misal `http://127.0.0.1:8000/docs/openapi.yaml` jika disajikan via server statis).
+
+### Tips Multilingual
+
+-   Gunakan anotasi **EN** / **ID** pada dokumen sebagai panduan cepat untuk bahasa.
+-   Tambahkan ekstensi khusus (mis. `x-i18n`) bila membutuhkan versi bahasa tambahan.
+
 ## ✅ Prasyarat
 
 -   PHP 8.3 atau lebih baru

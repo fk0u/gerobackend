@@ -1,0 +1,2095 @@
+openapi: 3.0.3
+info:
+  title: Gerobaks REST API
+  version: 1.0.0
+  description: |
+    **EN**: Official REST API specification for the Gerobaks waste management platform.
+    **ID**: Spesifikasi resmi REST API untuk platform pengelolaan sampah Gerobaks.
+  contact:
+    name: Gerobaks Engineering
+    email: dev@gerobaks.com
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local development (php artisan serve)
+  - url: https://api.gerobaks.com
+    description: Production (placeholder)
+tags:
+  - name: Health
+    description: |
+      **EN**: Lightweight probes used for monitoring.
+      **ID**: Endpoint sederhana untuk pemantauan layanan.
+  - name: Auth
+    description: |
+      **EN**: Authentication flows (login, register, session management).
+      **ID**: Alur autentikasi (masuk, daftar, manajemen sesi).
+  - name: Schedules
+    description: |
+      **EN**: Manage pickup schedules and assignments.
+      **ID**: Mengelola jadwal penjemputan dan penugasan petugas.
+  - name: Tracking
+    description: |
+      **EN**: Location tracking for sanitation fleets.
+      **ID**: Pelacakan lokasi armada kebersihan.
+  - name: Services
+    description: |
+      **EN**: Catalog of waste management services.
+      **ID**: Katalog layanan pengelolaan sampah.
+  - name: Orders
+    description: |
+      **EN**: Waste pickup orders life-cycle.
+      **ID**: Siklus hidup permintaan penjemputan sampah.
+  - name: Payments
+    description: |
+      **EN**: Payment records and confirmation flows.
+      **ID**: Pencatatan pembayaran dan proses konfirmasi.
+  - name: Ratings
+    description: |
+      **EN**: Service quality feedback submitted by users.
+      **ID**: Umpan balik kualitas layanan dari pengguna.
+  - name: Notifications
+    description: |
+      **EN**: Notification feed and read status controls.
+      **ID**: Feed notifikasi dan pengaturan status baca.
+  - name: Balance
+    description: |
+      **EN**: Points and wallet ledger endpoints.
+      **ID**: Endpoint saldo poin dan mutasi dompet.
+  - name: Chats
+    description: |
+      **EN**: In-app messaging between users and mitra.
+      **ID**: Pesan dalam aplikasi antara pengguna dan mitra.
+  - name: Dashboard
+    description: |
+      **EN**: Aggregated metrics for dashboards.
+      **ID**: Metrik teragregasi untuk dashboard.
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health probe / Pemeriksaan kesehatan
+      description: |
+        **EN**: Returns service status for uptime monitoring.
+        **ID**: Mengembalikan status layanan untuk pemantauan uptime.
+      responses:
+        '200':
+          description: |
+            **EN**: Service is reachable.
+            **ID**: Layanan dapat dijangkau.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login / Masuk
+      description: |
+        **EN**: Authenticate user credentials and receive a Sanctum token. Previous tokens are revoked.
+        **ID**: Autentikasi kredensial pengguna dan menerima token Sanctum. Token lama akan dicabut.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Login success.
+            **ID**: Login berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          description: |
+            **EN**: Validation failure or bad credentials.
+            **ID**: Validasi gagal atau kredensial salah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register / Daftar
+      description: |
+        **EN**: Create a new user account and issue a token.
+        **ID**: Membuat akun pengguna baru dan mengeluarkan token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Registration success.
+            **ID**: Registrasi berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          description: |
+            **EN**: Validation failure.
+            **ID**: Validasi gagal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current profile / Profil berjalan
+      description: |
+        **EN**: Fetch the authenticated user's profile.
+        **ID**: Mengambil profil pengguna yang sedang login.
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Authenticated profile payload.
+            **ID**: Data profil pengguna terautentikasi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthProfileResponse'
+        '401':
+          description: |
+            **EN**: Missing or invalid token.
+            **ID**: Token hilang atau tidak valid.
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout / Keluar
+      description: |
+        **EN**: Revoke the current Sanctum token.
+        **ID**: Mencabut token Sanctum yang sedang digunakan.
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Token revoked.
+            **ID**: Token berhasil dicabut.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/schedules:
+    get:
+      tags: [Schedules]
+      summary: List schedules / Daftar jadwal
+      description: |
+        **EN**: Paginated list of pickup schedules. Public read.
+        **ID**: Daftar jadwal penjemputan dengan pagination. Dapat diakses publik.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: |
+            **EN**: Filter by status (pending, in_progress, completed, cancelled).
+            **ID**: Filter berdasarkan status (pending, in_progress, completed, cancelled).
+        - in: query
+          name: assigned_to
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by assigned mitra user id.
+            **ID**: Filter berdasarkan ID mitra yang ditugaskan.
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: |
+            **EN**: Items per page (1-100).
+            **ID**: Jumlah item per halaman (1-100).
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated schedule list.
+            **ID**: Daftar jadwal dengan pagination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSchedule'
+    post:
+      tags: [Schedules]
+      summary: Create schedule / Buat jadwal
+      description: |
+        **EN**: Create a new schedule. Requires mitra or admin role.
+        **ID**: Membuat jadwal baru. Memerlukan peran mitra atau admin.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Schedule created.
+            **ID**: Jadwal berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '401':
+          description: Unauthorized / Tidak terotorisasi
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/schedules/{id}:
+    get:
+      tags: [Schedules]
+      summary: Schedule detail / Detail jadwal
+      description: |
+        **EN**: Retrieve a single schedule including latest tracking.
+        **ID**: Mengambil satu jadwal beserta tracking terbaru.
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      responses:
+        '200':
+          description: |
+            **EN**: Schedule found.
+            **ID**: Jadwal ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '404':
+          description: |
+            **EN**: Schedule not found.
+            **ID**: Jadwal tidak ditemukan.
+    patch:
+      tags: [Schedules]
+      summary: Update schedule / Perbarui jadwal
+      description: |
+        **EN**: Update mutable fields. Requires mitra or admin role.
+        **ID**: Memperbarui field yang dapat diubah. Memerlukan peran mitra atau admin.
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Schedule updated.
+            **ID**: Jadwal berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/tracking:
+    get:
+      tags: [Tracking]
+      summary: Latest tracking points / Titik tracking terbaru
+      description: |
+        **EN**: Fetch up to 1000 recent tracking records. Public read.
+        **ID**: Mengambil hingga 1000 catatan tracking terbaru. Bisa diakses publik.
+      parameters:
+        - in: query
+          name: schedule_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by schedule id.
+            **ID**: Filter berdasarkan ID jadwal.
+        - in: query
+          name: since
+          schema:
+            type: string
+            format: date-time
+          description: |
+            **EN**: Only records on or after this ISO timestamp.
+            **ID**: Hanya catatan pada atau setelah timestamp ISO ini.
+        - in: query
+          name: until
+          schema:
+            type: string
+            format: date-time
+          description: |
+            **EN**: Only records on or before this ISO timestamp.
+            **ID**: Hanya catatan pada atau sebelum timestamp ISO ini.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 200
+            minimum: 1
+            maximum: 1000
+          description: |
+            **EN**: Maximum records to return (1-1000).
+            **ID**: Jumlah maksimum catatan yang dikembalikan (1-1000).
+      responses:
+        '200':
+          description: |
+            **EN**: Tracking collection.
+            **ID**: Koleksi catatan tracking.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tracking'
+    post:
+      tags: [Tracking]
+      summary: Record tracking point / Catat titik tracking
+      description: |
+        **EN**: Submit a new tracking point. Requires mitra role.
+        **ID**: Mengirimkan titik tracking baru. Memerlukan peran mitra.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackingCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Tracking saved.
+            **ID**: Data tracking tersimpan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tracking'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/tracking/schedule/{scheduleId}:
+    get:
+      tags: [Tracking]
+      summary: Tracking history by schedule / Riwayat tracking per jadwal
+      description: |
+        **EN**: Returns the last 200 points ordered from newest to oldest.
+        **ID**: Mengembalikan 200 titik terakhir dari yang terbaru ke terlama.
+      parameters:
+        - $ref: '#/components/parameters/ScheduleIdPath'
+      responses:
+        '200':
+          description: |
+            **EN**: Tracking history list.
+            **ID**: Daftar riwayat tracking.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tracking'
+  /api/services:
+    get:
+      tags: [Services]
+      summary: List services / Daftar layanan
+      description: |
+        **EN**: Service catalog. Pass `all=true` to include inactive services.
+        **ID**: Katalog layanan. Gunakan `all=true` untuk menyertakan layanan tidak aktif.
+      parameters:
+        - in: query
+          name: all
+          schema:
+            type: boolean
+          description: |
+            **EN**: Include inactive services when true.
+            **ID**: Sertakan layanan tidak aktif jika true.
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: |
+            **EN**: Filter by keyword in service name.
+            **ID**: Filter berdasarkan kata kunci pada nama layanan.
+      responses:
+        '200':
+          description: |
+            **EN**: Service list.
+            **ID**: Daftar layanan.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+    post:
+      tags: [Services]
+      summary: Create service / Buat layanan
+      description: |
+        **EN**: Create a new service. Admin only.
+        **ID**: Membuat layanan baru. Hanya admin.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Service created.
+            **ID**: Layanan berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/services/{id}:
+    patch:
+      tags: [Services]
+      summary: Update service / Perbarui layanan
+      description: |
+        **EN**: Update service details. Admin only.
+        **ID**: Memperbarui detail layanan. Hanya admin.
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Service updated.
+            **ID**: Layanan diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/orders:
+    get:
+      tags: [Orders]
+      summary: List orders / Daftar order
+      description: |
+        **EN**: Paginated list of orders. Requires authentication.
+        **ID**: Daftar order dengan pagination. Memerlukan autentikasi.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by customer id.
+            **ID**: Filter berdasarkan ID pelanggan.
+        - in: query
+          name: mitra_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by assigned mitra id.
+            **ID**: Filter berdasarkan ID mitra.
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: |
+            **EN**: Filter by order status.
+            **ID**: Filter berdasarkan status order.
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated order list.
+            **ID**: Daftar order dengan pagination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrder'
+    post:
+      tags: [Orders]
+      summary: Create order / Buat order
+      description: |
+        **EN**: Submit a new pickup order. Requires end_user role.
+        **ID**: Mengirimkan order penjemputan baru. Memerlukan peran end_user.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Order created.
+            **ID**: Order berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Order detail / Detail order
+      description: |
+        **EN**: Retrieve a single order with relationships.
+        **ID**: Mengambil satu order beserta relasinya.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: |
+            **EN**: Order payload.
+            **ID**: Data order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404': { description: Not found / Tidak ditemukan }
+  /api/orders/{id}/assign:
+    patch:
+      tags: [Orders]
+      summary: Assign order / Tetapkan order
+      description: |
+        **EN**: Assign a mitra to an order. Requires mitra role.
+        **ID**: Menetapkan seorang mitra untuk order. Memerlukan peran mitra.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderAssignRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Order updated with assignment.
+            **ID**: Order berhasil diperbarui dengan penugasan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Update order status / Perbarui status order
+      description: |
+        **EN**: Update order status (assigned, in_progress, completed, cancelled). Requires mitra or admin role.
+        **ID**: Memperbarui status order (assigned, in_progress, completed, cancelled). Memerlukan peran mitra atau admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Order status updated.
+            **ID**: Status order diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/payments:
+    get:
+      tags: [Payments]
+      summary: List payments / Daftar pembayaran
+      description: |
+        **EN**: Paginated payment records. Requires authentication.
+        **ID**: Daftar pembayaran dengan pagination. Memerlukan autentikasi.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by user id.
+            **ID**: Filter berdasarkan ID pengguna.
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: |
+            **EN**: Filter by payment type (qris, ewallet, transfer, etc.).
+            **ID**: Filter berdasarkan tipe pembayaran (qris, ewallet, transfer, dll.).
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: |
+            **EN**: Filter by payment status.
+            **ID**: Filter berdasarkan status pembayaran.
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated payments.
+            **ID**: Daftar pembayaran dengan pagination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPayment'
+    post:
+      tags: [Payments]
+      summary: Create payment / Buat pembayaran
+      description: |
+        **EN**: Create a payment entry.
+        **ID**: Membuat catatan pembayaran.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Payment created.
+            **ID**: Pembayaran dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/payments/{id}:
+    patch:
+      tags: [Payments]
+      summary: Update payment / Perbarui pembayaran
+      description: |
+        **EN**: Update status or reference fields.
+        **ID**: Memperbarui status atau referensi pembayaran.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Payment updated.
+            **ID**: Pembayaran diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/payments/{id}/mark-paid:
+    post:
+      tags: [Payments]
+      summary: Mark payment as paid / Tandai pembayaran lunas
+      description: |
+        **EN**: Mark a payment entry as paid and update order ledger.
+        **ID**: Menandai pembayaran sebagai lunas dan memperbarui ledger order.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: |
+            **EN**: Payment marked as paid.
+            **ID**: Pembayaran ditandai lunas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '404': { description: Not found / Tidak ditemukan }
+  /api/ratings:
+    get:
+      tags: [Ratings]
+      summary: List ratings / Daftar rating
+      description: |
+        **EN**: Paginated ratings with related entities.
+        **ID**: Daftar rating dengan relasi terkait.
+      parameters:
+        - in: query
+          name: mitra_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by mitra id.
+            **ID**: Filter berdasarkan ID mitra.
+        - in: query
+          name: order_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by order id.
+            **ID**: Filter berdasarkan ID order.
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated ratings.
+            **ID**: Daftar rating dengan pagination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRating'
+    post:
+      tags: [Ratings]
+      summary: Create rating / Buat rating
+      description: |
+        **EN**: Submit a rating for a completed order. Requires end_user role.
+        **ID**: Mengirim rating untuk order yang selesai. Memerlukan peran end_user.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Rating created.
+            **ID**: Rating dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications / Daftar notifikasi
+      description: |
+        **EN**: Paginated notification feed. Requires authentication.
+        **ID**: Daftar notifikasi dengan pagination. Memerlukan autentikasi.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by user id.
+            **ID**: Filter berdasarkan ID pengguna.
+        - in: query
+          name: role_scope
+          schema:
+            type: string
+          description: |
+            **EN**: Filter by role scope (end_user, mitra, admin).
+            **ID**: Filter berdasarkan cakupan peran (end_user, mitra, admin).
+        - in: query
+          name: unread_only
+          schema:
+            type: boolean
+          description: |
+            **EN**: When true, only unread notifications are returned.
+            **ID**: Jika true, hanya notifikasi belum dibaca yang dikembalikan.
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated notifications.
+            **ID**: Daftar notifikasi dengan pagination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotification'
+    post:
+      tags: [Notifications]
+      summary: Create notification / Buat notifikasi
+      description: |
+        **EN**: Create a notification targeted to a user or role. Requires admin role.
+        **ID**: Membuat notifikasi yang ditargetkan ke pengguna atau peran. Memerlukan peran admin.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Notification created.
+            **ID**: Notifikasi dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/notifications/mark-read:
+    post:
+      tags: [Notifications]
+      summary: Mark notifications as read / Tandai notifikasi terbaca
+      description: |
+        **EN**: Bulk mark notifications as read by id.
+        **ID**: Menandai banyak notifikasi sebagai telah dibaca.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMarkReadRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Updated notifications list with count.
+            **ID**: Daftar notifikasi yang diperbarui dengan jumlah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationMarkReadResponse'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/balance/summary:
+    get:
+      tags: [Balance]
+      summary: Balance summary / Ringkasan saldo
+      description: |
+        **EN**: Points balance summary and recent entries.
+        **ID**: Ringkasan saldo poin dan entri terbaru.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          required: true
+          description: |
+            **EN**: User id to summarize.
+            **ID**: ID pengguna yang diringkas.
+      responses:
+        '200':
+          description: |
+            **EN**: Balance summary payload.
+            **ID**: Data ringkasan saldo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceSummary'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/balance/ledger:
+    get:
+      tags: [Balance]
+      summary: Balance ledger / Mutasi saldo
+      description: |
+        **EN**: Paginated ledger entries for a user.
+        **ID**: Daftar mutasi saldo pengguna.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          required: true
+          description: |
+            **EN**: User id.
+            **ID**: ID pengguna.
+        - in: query
+          name: direction
+          schema:
+            type: string
+            enum: [credit, debit]
+          description: |
+            **EN**: Filter by entry direction.
+            **ID**: Filter berdasarkan arah transaksi.
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated ledger.
+            **ID**: Daftar mutasi dengan pagination.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBalanceEntry'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chats:
+    get:
+      tags: [Chats]
+      summary: List chat messages / Daftar pesan
+      description: |
+        **EN**: Conversation history between two parties or by order.
+        **ID**: Riwayat percakapan antara dua pihak atau berdasarkan order.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: order_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Filter by order id.
+            **ID**: Filter berdasarkan ID order.
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Conversation participant user id.
+            **ID**: ID pengguna partisipan percakapan.
+        - in: query
+          name: peer_id
+          schema:
+            type: integer
+          description: |
+            **EN**: Conversation partner user id.
+            **ID**: ID lawan bicara.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 200
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: |
+            **EN**: Ordered chat messages (oldest first).
+            **ID**: Pesan chat yang sudah diurutkan (terlama terlebih dahulu).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chat'
+    post:
+      tags: [Chats]
+      summary: Send chat message / Kirim pesan
+      description: |
+        **EN**: Send a chat message between users.
+        **ID**: Mengirim pesan antar pengguna.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Message stored.
+            **ID**: Pesan tersimpan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/dashboard/mitra/{id}:
+    get:
+      tags: [Dashboard]
+      summary: Mitra dashboard metrics / Metrik dashboard mitra
+      description: |
+        **EN**: Aggregated metrics for mitra dashboard cards.
+        **ID**: Metrik agregasi untuk kartu dashboard mitra.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: |
+            **EN**: Metrics payload.
+            **ID**: Data metrik.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMitraMetrics'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/dashboard/user/{id}:
+    get:
+      tags: [Dashboard]
+      summary: User dashboard metrics / Metrik dashboard pengguna
+      description: |
+        **EN**: Aggregated metrics for end-user dashboard.
+        **ID**: Metrik agregasi untuk dashboard pengguna.
+      security:
+        - SanctumToken: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: |
+            **EN**: Metrics payload.
+            **ID**: Data metrik.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardUserMetrics'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+components:
+  securitySchemes:
+    SanctumToken:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum Personal Access Token
+  parameters:
+    ScheduleId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: |
+        **EN**: Schedule identifier.
+        **ID**: Identifier jadwal.
+    ScheduleIdPath:
+      name: scheduleId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: |
+        **EN**: Schedule identifier.
+        **ID**: Identifier jadwal.
+    ServiceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: |
+        **EN**: Service identifier.
+        **ID**: Identifier layanan.
+    OrderId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: |
+        **EN**: Order identifier.
+        **ID**: Identifier order.
+    PaymentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: |
+        **EN**: Payment identifier.
+        **ID**: Identifier pembayaran.
+    UserIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: |
+        **EN**: User identifier.
+        **ID**: Identifier pengguna.
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+          description: |
+            **EN**: Service status string.
+            **ID**: Status layanan.
+    MessageResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Logged out
+              description: |
+                **EN**: Human readable message.
+                **ID**: Pesan yang dapat dibaca manusia.
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: |
+            **EN**: Short error message.
+            **ID**: Pesan kesalahan singkat.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: |
+            **EN**: Validation errors keyed by field.
+            **ID**: Pesan validasi per field.
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user1@gerobaks.test
+          description: |
+            **EN**: Registered email.
+            **ID**: Email terdaftar.
+        password:
+          type: string
+          format: password
+          example: password
+          description: |
+            **EN**: Account password.
+            **ID**: Kata sandi akun.
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          example: Siti Rahma
+          description: |
+            **EN**: Full name.
+            **ID**: Nama lengkap.
+        email:
+          type: string
+          format: email
+          example: siti@example.com
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: rahasia123
+        role:
+          type: string
+          enum: [end_user, mitra, admin]
+          description: |
+            **EN**: Optional role override (defaults to end_user).
+            **ID**: Peran opsional (default end_user).
+    AuthTokenResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+              description: |
+                **EN**: Sanctum plain text token.
+                **ID**: Token Sanctum plain text.
+    AuthProfileResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [end_user, mitra, admin]
+        profile_picture:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        subscription_status:
+          type: string
+          nullable: true
+        points:
+          type: integer
+          nullable: true
+        employee_id:
+          type: string
+          nullable: true
+        vehicle_type:
+          type: string
+          nullable: true
+        vehicle_plate:
+          type: string
+          nullable: true
+        work_area:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        rating:
+          type: number
+          format: float
+          nullable: true
+        total_collections:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        status:
+          type: string
+        assigned_to:
+          type: integer
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        assigned_user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        trackings_count:
+          type: integer
+          nullable: true
+        trackings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tracking'
+          nullable: true
+    ScheduleCreateRequest:
+      type: object
+      required: [title, latitude, longitude]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        status:
+          type: string
+          nullable: true
+        assigned_to:
+          type: integer
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+    ScheduleUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        status:
+          type: string
+        assigned_to:
+          type: integer
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+    Tracking:
+      type: object
+      properties:
+        id:
+          type: integer
+        schedule_id:
+          type: integer
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        speed:
+          type: number
+          format: float
+          nullable: true
+        heading:
+          type: number
+          format: float
+          nullable: true
+        recorded_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+          nullable: true
+    TrackingCreateRequest:
+      type: object
+      required: [schedule_id, latitude, longitude]
+      properties:
+        schedule_id:
+          type: integer
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        speed:
+          type: number
+          format: float
+          nullable: true
+        heading:
+          type: number
+          format: float
+          nullable: true
+        recorded_at:
+          type: string
+          format: date-time
+          nullable: true
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        base_points:
+          type: integer
+          nullable: true
+        base_price:
+          type: integer
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ServiceCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        base_points:
+          type: integer
+          nullable: true
+        base_price:
+          type: integer
+          nullable: true
+        is_active:
+          type: boolean
+          nullable: true
+    ServiceUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        base_points:
+          type: integer
+          nullable: true
+        base_price:
+          type: integer
+          nullable: true
+        is_active:
+          type: boolean
+          nullable: true
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        mitra_id:
+          type: integer
+          nullable: true
+        service_id:
+          type: integer
+          nullable: true
+        schedule_id:
+          type: integer
+          nullable: true
+        address_text:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [pending, assigned, in_progress, completed, cancelled]
+        requested_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        total_points:
+          type: integer
+          nullable: true
+        total_price:
+          type: integer
+          nullable: true
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        mitra:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        service:
+          $ref: '#/components/schemas/Service'
+          nullable: true
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+          nullable: true
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rating'
+    OrderCreateRequest:
+      type: object
+      required: [user_id, address_text, latitude, longitude]
+      properties:
+        user_id:
+          type: integer
+        service_id:
+          type: integer
+          nullable: true
+        address_text:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        notes:
+          type: string
+          nullable: true
+    OrderAssignRequest:
+      type: object
+      required: [mitra_id]
+      properties:
+        mitra_id:
+          type: integer
+    OrderStatusUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [assigned, in_progress, completed, cancelled]
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+          nullable: true
+        user_id:
+          type: integer
+        type:
+          type: string
+        method:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        reference:
+          type: string
+          nullable: true
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        order:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+            total_price:
+              type: integer
+              nullable: true
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+    PaymentCreateRequest:
+      type: object
+      required: [user_id, type, method, amount]
+      properties:
+        order_id:
+          type: integer
+          nullable: true
+        user_id:
+          type: integer
+        type:
+          type: string
+        method:
+          type: string
+        amount:
+          type: integer
+    PaymentUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+        reference:
+          type: string
+          nullable: true
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+    Rating:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        user_id:
+          type: integer
+        mitra_id:
+          type: integer
+        score:
+          type: integer
+        comment:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        order:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        mitra:
+          $ref: '#/components/schemas/User'
+          nullable: true
+    RatingCreateRequest:
+      type: object
+      required: [order_id, user_id, score]
+      properties:
+        order_id:
+          type: integer
+        user_id:
+          type: integer
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        role_scope:
+          type: string
+          nullable: true
+        title:
+          type: string
+        body:
+          type: string
+        type:
+          type: string
+          nullable: true
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+    NotificationCreateRequest:
+      type: object
+      required: [title, body]
+      properties:
+        user_id:
+          type: integer
+          nullable: true
+        role_scope:
+          type: string
+          nullable: true
+        title:
+          type: string
+        body:
+          type: string
+        type:
+          type: string
+          nullable: true
+    NotificationMarkReadRequest:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+          description: |
+            **EN**: Notification ids to mark read.
+            **ID**: ID notifikasi yang akan ditandai.
+    NotificationMarkReadResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        updated:
+          type: integer
+          description: |
+            **EN**: Number of records updated.
+            **ID**: Jumlah catatan yang diperbarui.
+    BalanceEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        direction:
+          type: string
+          enum: [credit, debit]
+        amount:
+          type: integer
+        source_type:
+          type: string
+          nullable: true
+        source_id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+    BalanceSummary:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        balance:
+          type: integer
+        credit:
+          type: integer
+        debit:
+          type: integer
+        recent_entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/BalanceEntry'
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+          nullable: true
+        sender_id:
+          type: integer
+        receiver_id:
+          type: integer
+        message:
+          type: string
+        message_type:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        order:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+        sender:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        receiver:
+          $ref: '#/components/schemas/User'
+          nullable: true
+    ChatCreateRequest:
+      type: object
+      required: [sender_id, receiver_id, message]
+      properties:
+        order_id:
+          type: integer
+          nullable: true
+        sender_id:
+          type: integer
+        receiver_id:
+          type: integer
+        message:
+          type: string
+        message_type:
+          type: string
+          nullable: true
+    DashboardMitraMetrics:
+      type: object
+      properties:
+        active_orders_count:
+          type: integer
+        today_completed:
+          type: integer
+        total_points_earned:
+          type: integer
+        unread_notifications:
+          type: integer
+    DashboardUserMetrics:
+      type: object
+      properties:
+        active_requests:
+          type: integer
+        total_points:
+          type: integer
+        unread_notifications:
+          type: integer
+    PaginationLinksObject:
+      type: object
+      properties:
+        url:
+          type: string
+          nullable: true
+        label:
+          type: string
+        active:
+          type: boolean
+    PaginationBase:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        first_page_url:
+          type: string
+        from:
+          type: integer
+          nullable: true
+        last_page:
+          type: integer
+        last_page_url:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaginationLinksObject'
+        next_page_url:
+          type: string
+          nullable: true
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: string
+          nullable: true
+        to:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+    PaginatedSchedule:
+      allOf:
+        - $ref: '#/components/schemas/PaginationBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Schedule'
+    PaginatedOrder:
+      allOf:
+        - $ref: '#/components/schemas/PaginationBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Order'
+    PaginatedPayment:
+      allOf:
+        - $ref: '#/components/schemas/PaginationBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Payment'
+    PaginatedRating:
+      allOf:
+        - $ref: '#/components/schemas/PaginationBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Rating'
+    PaginatedNotification:
+      allOf:
+        - $ref: '#/components/schemas/PaginationBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Notification'
+    PaginatedBalanceEntry:
+      allOf:
+        - $ref: '#/components/schemas/PaginationBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BalanceEntry'
