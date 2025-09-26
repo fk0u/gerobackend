@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AesEncrypted;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,8 @@ class Order extends Model
         'requested_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'address_text' => AesEncrypted::class,
+        'notes' => AesEncrypted::class,
     ];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }

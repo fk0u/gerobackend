@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AesEncrypted;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,10 @@ class Chat extends Model
 
     protected $fillable = [
         'order_id','sender_id','receiver_id','message','message_type'
+    ];
+
+    protected $casts = [
+        'message' => AesEncrypted::class,
     ];
 
     public function order(): BelongsTo { return $this->belongsTo(Order::class); }
