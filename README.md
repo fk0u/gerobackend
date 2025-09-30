@@ -23,7 +23,7 @@
 
 ## 🧭 Ikhtisar
 
-Gerobaks API merupakan layanan backend yang menangani autentikasi, manajemen jadwal pengambilan sampah, pelacakan armada, sistem pembayaran, notifikasi pintar, hingga chatbot AI. API ini dioptimalkan untuk terhubung dengan aplikasi Flutter Gerobaks sekaligus siap diperluas ke kanal lain seperti dashboard internal.
+Gerobaks API merupakan layanan backend yang menangani autentikasi, manajemen jadwal pengambilan sampah, pelacakan armada, sistem pembayaran, notifikasi pintar, hingga chatbot AI. API ini dioptimalkan untuk terhubung dengan aplikasi Flutter Gerobaks sekaligus siap diperluas ke kanal lain seperti dashboard internal. Riwayat rilis dan perubahan utama dapat diikuti melalui [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Modul Inti
 
@@ -36,6 +36,13 @@ Gerobaks API merupakan layanan backend yang menangani autentikasi, manajemen jad
 -   💬 **Percakapan**: Kanal chat antara pengguna dan petugas mitra.
 -   ⭐ **Rating & Feedback**: Kuesioner penilaian layanan.
 
+### Integrasi dengan Aplikasi Mobile
+
+-   **Flutter SDK** memanggil API melalui `API_BASE_URL` yang disinkronkan dengan pilihan environment pada halaman dokumentasi internal.
+-   **Error monitoring**: Event ID dari Sentry dicatat pada log backend sehingga tim mobile dapat menautkan laporan crash dengan insiden server.
+-   **Payload terenkripsi**: Field sensitif (alamat, catatan pembayaran, pesan chat) sudah dienkripsi oleh backend sebelum dikirimkan ke mobile, kompatibel dengan deserializer di aplikasi.
+-   **Realtime feedback loop**: Endpoint health check (`/api/health`) dan ping server pada dokumentasi membantu QA mobile mengecek kesiapan environment.
+
 ## 🛠️ Teknologi
 
 | Layer          | Teknologi                                            |
@@ -46,6 +53,7 @@ Gerobaks API merupakan layanan backend yang menangani autentikasi, manajemen jad
 | Database       | MySQL 8 / MariaDB 10.5 / SQLite (pengembangan cepat) |
 | Queue & Events | Database queue, event broadcasting, job pipeline     |
 | Storage        | Local disk (pengembangan), siap S3 kompatibel        |
+| Observability  | Sentry Laravel SDK (error & performance telemetry)   |
 | Testing        | PHPUnit, Pest (optional), Laravel test suite         |
 
 ## 📘 Dokumentasi API (Swagger/OpenAPI)
@@ -185,6 +193,13 @@ Gunakan header `X-Role` jika diperlukan untuk endpoint tertentu (lihat middlewar
 -   `php artisan storage:link`: Membuat symlink storage (bila butuh upload)
 -   `php artisan make:module ...`: Gunakan blueprint internal (lihat `README-dev.md` bila ada)
 -   `php artisan tinker`: Eksperimen cepat dengan data
+
+## 📈 Observability & Incident Response
+
+-   **Sentry Laravel SDK** aktif pada channel log `stack` (`single,sentry`). Pastikan `SENTRY_LARAVEL_DSN` terisi pada `.env` produksi.
+-   Variabel `SENTRY_TRACES_SAMPLE_RATE` default `1.0` untuk staging sehingga request dari aplikasi mobile tercatat lengkap. Turunkan nilainya (`0.2`–`0.3`) bila beban produksi meningkat.
+-   Ganti `SENTRY_SEND_DEFAULT_PII` ke `false` jika deployment tertentu tidak boleh mengirim data PII (email/IP) ke Sentry.
+-   Gunakan tombol "Ping" dan "Use Server" di halaman dokumentasi internal (Blade `docs/index.blade.php`) untuk menguji health check API sebelum rilis mobile.
 
 ## 🧪 Testing
 
