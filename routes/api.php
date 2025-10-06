@@ -14,6 +14,12 @@ use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\DashboardController;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
+Route::get('/ping', fn () => response()->json([
+    'status' => 'ok',
+    'message' => 'Gerobaks API is running',
+    'timestamp' => now()->toDateTimeString(),
+    'environment' => config('app.env')
+]));
 
 // Public auth endpoints
 Route::post('/login', [AuthController::class, 'login']);
