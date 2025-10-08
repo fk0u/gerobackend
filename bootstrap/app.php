@@ -16,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', [\App\Http\Middleware\Cors::class]);
         // Sanctum auth guard & role middleware will be applied per-route; ensure role middleware alias
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role' => \App\Http\Middleware\RoleAuthorization::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

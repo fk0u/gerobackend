@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "253305614bf2d57712e451e1bf2e19d4",
+    "content-hash": "3d47604d6f1d31022e499d174f9eb14f",
     "packages": [
         {
             "name": "brick/math",
@@ -137,16 +137,16 @@
         },
         {
             "name": "darkaonline/l5-swagger",
-            "version": "9.0.0",
+            "version": "9.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DarkaOnLine/L5-Swagger.git",
-                "reference": "7fffe3de03f2cf36ab38e40e864feb8f392b9458"
+                "reference": "2c26427f8c41db8e72232415e7287313e6b6a2e2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DarkaOnLine/L5-Swagger/zipball/7fffe3de03f2cf36ab38e40e864feb8f392b9458",
-                "reference": "7fffe3de03f2cf36ab38e40e864feb8f392b9458",
+                "url": "https://api.github.com/repos/DarkaOnLine/L5-Swagger/zipball/2c26427f8c41db8e72232415e7287313e6b6a2e2",
+                "reference": "2c26427f8c41db8e72232415e7287313e6b6a2e2",
                 "shasum": ""
             },
             "require": {
@@ -206,7 +206,7 @@
             ],
             "support": {
                 "issues": "https://github.com/DarkaOnLine/L5-Swagger/issues",
-                "source": "https://github.com/DarkaOnLine/L5-Swagger/tree/9.0.0"
+                "source": "https://github.com/DarkaOnLine/L5-Swagger/tree/9.0.1"
             },
             "funding": [
                 {
@@ -214,7 +214,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-02-24T14:41:30+00:00"
+            "time": "2025-02-28T06:25:02+00:00"
         },
         {
             "name": "dflydev/dot-access-data",

@@ -9,6 +9,7 @@ use App\Http\Resources\OrderResource;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
@@ -95,5 +96,31 @@ class OrderController extends Controller
         return response()->json(new OrderResource($order->fresh([
             'user','mitra','service','schedule.assignedUser','payments','ratings'
         ])));
+    }
+
+    public function cancel(Request $request, int $id)
+    {
+        $order = Order::with(['user','mitra','service','schedule.assignedUser','payments','ratings'])->findOrFail($id);
+        
+        // Check if user owns this order
+        if ($order->user_id !== Auth::id()) {
+            return response()->json(['error' => ['message' => 'Unauthorized to cancel this order']], 403);
+        }
+        
+        // Check if order can be cancelled
+        if (!in_array($order->status, ['pending', 'assigned'])) {
+            return response()->json(['error' => ['message' => 'Cannot cancel order in current status']], 422);
+        }
+        
+        $order->status = 'cancelled';
+        $order->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Order cancelled successfully',
+            'data' => new OrderResource($order->fresh([
+                'user','mitra','service','schedule.assignedUser','payments','ratings'
+            ]))
+        ]);
     }
 }
