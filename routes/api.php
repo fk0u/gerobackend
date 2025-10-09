@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SubscriptionPlanController;
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\ReportController;
 
 /**
  * @OA\Get(
@@ -150,6 +152,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
 	Route::get('/dashboard/mitra/{id}', [DashboardController::class, 'mitra'])->middleware('role:mitra,admin');
 	Route::get('/dashboard/user/{id}', [DashboardController::class, 'user'])->middleware('role:end_user,admin');
+});
+
+// Reports (auth required)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/reports', [ReportController::class, 'index']);
+    Route::post('/reports', [ReportController::class, 'store']);
+    Route::get('/reports/{id}', [ReportController::class, 'show']);
+    Route::patch('/reports/{id}', [ReportController::class, 'update'])->middleware('role:admin');
+});
+
+// Admin endpoints (admin only)
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/admin/stats', [AdminController::class, 'getStatistics']);
+    Route::get('/admin/users', [AdminController::class, 'getUsers']);
+    Route::post('/admin/users', [AdminController::class, 'createUser']);
+    Route::patch('/admin/users/{id}', [AdminController::class, 'updateUser']);
+    Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+    Route::get('/admin/logs', [AdminController::class, 'getLogs']);
+    Route::get('/admin/export', [AdminController::class, 'exportData']);
+    Route::post('/admin/notifications', [AdminController::class, 'sendNotification']);
+    Route::get('/admin/health', [AdminController::class, 'getSystemHealth']);
 });
 
 // Admin settings
