@@ -31,15 +31,15 @@ class DocsController extends Controller
                 'key' => 'staging',
                 'label' => 'Staging',
                 'description' => 'Shared QA sandbox for QA & stakeholder review.',
-                'url' => config('services.gerobaks.staging_url', env('GEROBAKS_STAGING_URL', 'https://staging-api.gerobaks.com')),
-                'docs' => config('services.gerobaks.staging_docs_url', env('GEROBAKS_STAGING_DOCS_URL', 'https://staging-api.gerobaks.com/docs')),
+                'url' => config('services.gerobaks.staging_url', env('GEROBAKS_STAGING_URL', 'https://staging-gerobaks.dumeg.com')),
+                'docs' => config('services.gerobaks.staging_docs_url', env('GEROBAKS_STAGING_DOCS_URL', 'https://staging-gerobaks.dumeg.com/docs')),
             ],
             [
                 'key' => 'production',
                 'label' => 'Production',
                 'description' => 'Live environment consumed by mobile & partner apps.',
-                'url' => config('services.gerobaks.production_url', env('GEROBAKS_PRODUCTION_URL', 'https://api.gerobaks.com')),
-                'docs' => config('services.gerobaks.production_docs_url', env('GEROBAKS_PRODUCTION_DOCS_URL', 'https://api.gerobaks.com/docs')),
+                'url' => config('services.gerobaks.production_url', env('GEROBAKS_PRODUCTION_URL', 'https://gerobaks.dumeg.com')),
+                'docs' => config('services.gerobaks.production_docs_url', env('GEROBAKS_PRODUCTION_DOCS_URL', 'https://gerobaks.dumeg.com/docs')),
             ],
         ];
 

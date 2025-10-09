@@ -36,7 +36,7 @@
  * )
  *
  * @OA\Server(
- *     url="https://api.gerobaks.com",
+ *     url="https://gerobaks.dumeg.com",
  *     description="Production (placeholder)"
  * )
  */

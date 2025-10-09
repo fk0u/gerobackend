@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gerobaks REST API
-  version: 1.0.0
+  version: 1.0.2
   description: |
     **EN**: Official REST API specification for the Gerobaks waste management platform.
     **ID**: Spesifikasi resmi REST API untuk platform pengelolaan sampah Gerobaks.
@@ -11,7 +11,7 @@ info:
 servers:
   - url: http://127.0.0.1:8000
     description: Local development (php artisan serve)
-  - url: https://api.gerobaks.com
+  - url: https://gerobaks.dumeg.com
     description: Production (placeholder)
 tags:
   - name: Health
