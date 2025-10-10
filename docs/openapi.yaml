@@ -12,7 +12,7 @@ servers:
   - url: http://127.0.0.1:8000
     description: Local development (php artisan serve)
   - url: https://gerobaks.dumeg.com
-    description: Production (placeholder)
+    description: Production (live)
 tags:
   - name: Health
     description: |

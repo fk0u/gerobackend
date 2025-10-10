@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+        'gerobaks' => [
+            'staging_url' => env('GEROBAKS_STAGING_URL', 'https://staging-gerobaks.dumeg.com'),
+            'staging_docs_url' => env('GEROBAKS_STAGING_DOCS_URL', 'https://staging-gerobaks.dumeg.com/docs'),
+            'production_url' => env('GEROBAKS_PRODUCTION_URL', 'https://gerobaks.dumeg.com'),
+            'production_docs_url' => env('GEROBAKS_PRODUCTION_DOCS_URL', 'https://gerobaks.dumeg.com/docs'),
+        ],
+
 ];
