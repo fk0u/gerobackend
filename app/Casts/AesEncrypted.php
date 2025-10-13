@@ -14,6 +14,7 @@ class AesEncrypted implements CastsAttributes
     public function __construct()
     {
         $appKey = config('app.key');
+        if (Str::startsWith($appKey, 'base64:')) {
             $appKey = base64_decode(substr($appKey, 7), true) ?: '';
         }
 
