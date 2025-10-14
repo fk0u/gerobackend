@@ -10,6 +10,8 @@
 
 **REST API yang melayani seluruh fitur aplikasi mobile Gerobaks.**
 
+[📦 Production Deployment](#-production-deployment) | [🚀 Quick Start](START_HERE.md) | [📖 Full Docs](DEPLOYMENT.md)
+
 </div>
 
 ---
@@ -210,14 +212,109 @@ php artisan test --filter=OrderTest
 
 Tambahkan test baru di folder `tests/Feature` untuk flow API dan `tests/Unit` untuk logika helper.
 
-## 📦 Deployment Checklist
+## 📦 Production Deployment
+
+### 🚀 Quick Start (cPanel)
+
+**Deployment ke cPanel bisa selesai dalam ~20 menit!**
+
+#### Step 1: Persiapan Local
+
+```bash
+# Windows
+cd backend
+deploy-prepare.bat
+
+# Linux/Mac
+chmod +x deploy-prepare.sh
+./deploy-prepare.sh
+```
+
+#### Step 2: Upload ke cPanel
+
+1. Login ke cPanel: https://gerobaks.dumeg.com:2083
+2. File Manager → Upload ZIP yang di-generate
+3. Extract di `public_html/`
+
+#### Step 3: Konfigurasi Server
+
+```bash
+# Via SSH (Recommended)
+ssh username@gerobaks.dumeg.com
+cd public_html/backend
+chmod +x deploy-server.sh
+./deploy-server.sh
+```
+
+#### Step 4: Verify
+
+```bash
+curl https://gerobaks.dumeg.com/api/health
+# Expected: {"status":"ok"}
+```
+
+### 📚 Complete Documentation
+
+Kami menyediakan dokumentasi deployment yang lengkap dan terstruktur:
+
+| File                                                           | Description                         | When to Use               |
+| -------------------------------------------------------------- | ----------------------------------- | ------------------------- |
+| **[START_HERE.md](START_HERE.md)**                             | 🗺️ Navigator & decision tree        | Bingung mulai dari mana   |
+| **[QUICKSTART-CPANEL.md](QUICKSTART-CPANEL.md)**               | ⚡ Quick deployment guide (~20 min) | First-time deployment     |
+| **[DEPLOYMENT.md](DEPLOYMENT.md)**                             | 📖 Complete reference (400+ lines)  | Troubleshooting & details |
+| **[DEPLOYMENT_FILES_SUMMARY.md](DEPLOYMENT_FILES_SUMMARY.md)** | 📦 File list & explanation          | Overview semua tools      |
+| **[API_CREDENTIALS.md](API_CREDENTIALS.md)**                   | 🔑 Test accounts & credentials      | Butuh login info          |
+| **[BACKEND_API_VERIFICATION.md](BACKEND_API_VERIFICATION.md)** | ✅ Test results & procedures        | Verify API working        |
+
+### 🤖 Automation Scripts
+
+| Script               | Platform     | Purpose                       |
+| -------------------- | ------------ | ----------------------------- |
+| `deploy-prepare.sh`  | Linux/Mac    | Local preparation & packaging |
+| `deploy-prepare.bat` | Windows      | Local preparation & packaging |
+| `deploy-server.sh`   | Server (SSH) | Server-side deployment        |
+
+### 🧪 Test Scripts
+
+Verify API functionality before production:
+
+```bash
+php test_api_comprehensive.php  # Test all endpoints
+php test_cors.php                # Verify CORS headers
+php test_login.php              # Quick login test
+```
+
+### ✅ Production Checklist
 
 -   [ ] Set `APP_ENV=production` dan `APP_DEBUG=false`
--   [ ] Jalankan `php artisan config:cache` & `route:cache`
--   [ ] Pastikan queue worker aktif (Supervisor atau Horizon)
--   [ ] Konfigurasi log rotation & monitoring (Sentry/NewRelic)
--   [ ] Pasang HTTPS & domain API
--   [ ] Update variabel `.env` (API keys, database, storage driver)
+-   [ ] Database MySQL configured (tidak pakai SQLite)
+-   [ ] SSL certificate active (HTTPS)
+-   [ ] Run migrations: `php artisan migrate --force`
+-   [ ] Run seeders: `php artisan db:seed --force`
+-   [ ] Optimize caches: `php artisan config:cache && route:cache`
+-   [ ] Set permissions: `chmod -R 755 storage bootstrap/cache`
+-   [ ] Test endpoints: All return JSON dengan CORS headers
+-   [ ] Update Flutter app: Change `apiBaseUrl` to production URL
+-   [ ] Monitor logs: `tail -f storage/logs/laravel.log`
+
+### 🔧 Production URLs
+
+-   **API Base:** https://gerobaks.dumeg.com
+-   **API Docs:** https://gerobaks.dumeg.com/docs
+-   **Health Check:** https://gerobaks.dumeg.com/api/health
+-   **cPanel:** https://gerobaks.dumeg.com:2083
+
+### 🆘 Common Issues
+
+| Issue            | Quick Fix                                |
+| ---------------- | ---------------------------------------- |
+| 500 Error        | `php artisan config:clear`               |
+| Database Error   | Check `.env` credentials                 |
+| Permission Error | `chmod -R 755 storage bootstrap/cache`   |
+| CORS Error       | Already fixed in middleware, clear cache |
+| 404 on /api/\*   | Check `.htaccess`, enable mod_rewrite    |
+
+**Need detailed help?** → Read [DEPLOYMENT.md](DEPLOYMENT.md) Troubleshooting section
 
 ## 🤝 Kontribusi Internal
 

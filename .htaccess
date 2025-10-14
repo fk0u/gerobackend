@@ -1,0 +1,75 @@
+# Prevent directory browsing
+
+Options -Indexes
+
+# Protect sensitive files
+
+<FilesMatch "^\.env">
+Order allow,deny
+Deny from all
+</FilesMatch>
+
+<FilesMatch "^(composer\.(json|lock)|package\.json|\.gitignore)$">
+Order allow,deny
+Deny from all
+</FilesMatch>
+
+# Deny access to storage directories
+
+<DirectoryMatch "storage/(logs|framework)">
+Order allow,deny
+Deny from all
+</DirectoryMatch>
+
+# PHP Configuration
+
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+    php_value upload_max_filesize 20M
+    php_value post_max_size 20M
+</IfModule>
+
+# Enable GZIP compression
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Set proper MIME types
+
+<IfModule mod_mime.c>
+    AddType application/json .json
+    AddType application/javascript .js
+    AddType text/css .css
+</IfModule>
+
+# Security headers
+
+<IfModule mod_headers.c>
+    # Prevent clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Prevent MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Enable XSS protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Referrer policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Redirect to public folder (if not already there)
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirect to public folder
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

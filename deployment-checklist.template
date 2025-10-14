@@ -1,0 +1,318 @@
+╔══════════════════════════════════════════════════════════════════╗
+║         🚀 GEROBAKS BACKEND - DEPLOYMENT CHECKLIST              ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Generated: {{TIMESTAMP}}
+Package: gerobaks-backend-{{TIMESTAMP}}.zip
+
+═══════════════════════════════════════════════════════════════════
+PHASE 1: PRE-DEPLOYMENT
+═══════════════════════════════════════════════════════════════════
+
+LOCAL PREPARATION:
+☐ Git repository up to date (git pull)
+☐ All changes committed (git status clean)
+☐ Dependencies installed (composer install)
+☐ Tests passing (php artisan test)
+☐ Deployment package created (deploy-prepare script)
+
+CPANEL ACCESS:
+☐ cPanel URL: https://gerobaks.dumeg.com:2083
+☐ Username: __________________
+☐ Password: __________________
+☐ SSH Access: ☐ Available ☐ Not Available
+
+DOMAIN/SSL:
+☐ Domain pointing to server: https://gerobaks.dumeg.com
+☐ SSL certificate active (HTTPS working)
+☐ DNS propagated (check via: https://dnschecker.org)
+
+═══════════════════════════════════════════════════════════════════
+PHASE 2: DATABASE SETUP
+═══════════════════════════════════════════════════════════════════
+
+VIA CPANEL → MySQL DATABASES:
+☐ Database created
+   Name: gerobaks_db (or ____________________)
+   
+☐ User created
+   Username: gerobaks_user (or ____________________)
+   Password: ____________________
+   
+☐ User added to database with ALL PRIVILEGES
+
+☐ Database credentials noted:
+   DB_HOST=localhost
+   DB_DATABASE=____________________
+   DB_USERNAME=____________________
+   DB_PASSWORD=____________________
+
+═══════════════════════════════════════════════════════════════════
+PHASE 3: FILE UPLOAD
+═══════════════════════════════════════════════════════════════════
+
+VIA CPANEL → FILE MANAGER:
+☐ Navigate to public_html/ (or appropriate directory)
+☐ Upload gerobaks-backend-{{TIMESTAMP}}.zip
+☐ Extract ZIP file
+☐ Rename folder (if needed): backend → api
+☐ Delete ZIP file after extraction
+
+FILE STRUCTURE VERIFIED:
+☐ public_html/backend/app/
+☐ public_html/backend/bootstrap/
+☐ public_html/backend/config/
+☐ public_html/backend/database/
+☐ public_html/backend/public/
+☐ public_html/backend/routes/
+☐ public_html/backend/storage/
+☐ public_html/backend/.env.example
+☐ public_html/backend/artisan
+☐ public_html/backend/composer.json
+
+═══════════════════════════════════════════════════════════════════
+PHASE 4: ENVIRONMENT CONFIGURATION
+═══════════════════════════════════════════════════════════════════
+
+COPY & EDIT .env:
+☐ Copy .env.example to .env
+   Command: cp .env.example .env
+   
+☐ Edit .env with correct values:
+
+APPLICATION:
+☐ APP_ENV=production
+☐ APP_DEBUG=false
+☐ APP_URL=https://gerobaks.dumeg.com
+☐ APP_KEY=(will be generated)
+
+DATABASE:
+☐ DB_CONNECTION=mysql
+☐ DB_HOST=localhost
+☐ DB_DATABASE=____________________
+☐ DB_USERNAME=____________________
+☐ DB_PASSWORD=____________________
+
+CACHE/SESSIONS (Optional):
+☐ CACHE_STORE=file (or redis if available)
+☐ SESSION_DRIVER=file (or database)
+☐ QUEUE_CONNECTION=sync (or database/redis)
+
+MAIL (If needed):
+☐ MAIL_MAILER=smtp
+☐ MAIL_HOST=____________________
+☐ MAIL_PORT=____________________
+☐ MAIL_USERNAME=____________________
+☐ MAIL_PASSWORD=____________________
+
+═══════════════════════════════════════════════════════════════════
+PHASE 5: SERVER SETUP (via SSH)
+═══════════════════════════════════════════════════════════════════
+
+IF SSH AVAILABLE:
+☐ SSH into server
+   Command: ssh username@gerobaks.dumeg.com
+   
+☐ Navigate to backend directory
+   Command: cd public_html/backend
+   
+☐ Run deploy-server.sh
+   Command: chmod +x deploy-server.sh && ./deploy-server.sh
+   
+☐ Script completed successfully
+
+IF SSH NOT AVAILABLE (Manual via Terminal/File Manager):
+☐ Install Composer dependencies
+   Command: composer install --no-dev --optimize-autoloader
+   
+☐ Generate application key
+   Command: php artisan key:generate --force
+   
+☐ Set permissions
+   Command: chmod -R 755 storage bootstrap/cache
+   
+☐ Create storage symlink
+   Command: php artisan storage:link
+   
+☐ Run migrations
+   Command: php artisan migrate --force
+   
+☐ Seed database (optional)
+   Command: php artisan db:seed --force
+   
+☐ Optimize for production
+   Command: php artisan config:cache
+   Command: php artisan route:cache
+   Command: php artisan view:cache
+
+═══════════════════════════════════════════════════════════════════
+PHASE 6: VERIFICATION
+═══════════════════════════════════════════════════════════════════
+
+API ENDPOINT TESTS:
+
+☐ Health check
+   URL: https://gerobaks.dumeg.com/api/health
+   Expected: {"status":"ok"}
+   Result: ☐ Pass ☐ Fail
+   Notes: ____________________
+
+☐ API documentation
+   URL: https://gerobaks.dumeg.com/docs
+   Expected: Swagger/API docs page
+   Result: ☐ Pass ☐ Fail
+   Notes: ____________________
+
+☐ Login endpoint
+   URL: https://gerobaks.dumeg.com/api/login
+   Method: POST
+   Body: {"email":"daffa@gmail.com","password":"password123"}
+   Expected: {"access_token":"...","token_type":"Bearer"}
+   Result: ☐ Pass ☐ Fail
+   Notes: ____________________
+
+☐ Register endpoint
+   URL: https://gerobaks.dumeg.com/api/register
+   Method: POST
+   Expected: 200/201 response
+   Result: ☐ Pass ☐ Fail
+   Notes: ____________________
+
+CORS VERIFICATION:
+☐ Preflight request (OPTIONS)
+   Expected headers:
+   - Access-Control-Allow-Origin: *
+   - Access-Control-Allow-Methods: *
+   - Access-Control-Allow-Headers: *
+   Result: ☐ Pass ☐ Fail
+
+☐ Actual request (POST)
+   Expected: JSON response with CORS headers
+   Result: ☐ Pass ☐ Fail
+
+PERFORMANCE CHECK:
+☐ Response time < 1 second
+☐ No 500 errors in logs
+☐ Memory usage normal
+☐ Cache files created in bootstrap/cache/
+
+═══════════════════════════════════════════════════════════════════
+PHASE 7: FLUTTER APP INTEGRATION
+═══════════════════════════════════════════════════════════════════
+
+UPDATE FLUTTER APP:
+☐ Edit lib/utils/app_config.dart
+   Change: apiBaseUrl = 'https://gerobaks.dumeg.com'
+   
+☐ Clean build
+   Command: flutter clean
+   
+☐ Get dependencies
+   Command: flutter pub get
+   
+☐ Run app
+   Command: flutter run
+
+TEST FROM FLUTTER APP:
+☐ Login with test credentials
+   Email: daffa@gmail.com
+   Password: password123
+   Result: ☐ Pass ☐ Fail
+   
+☐ Browse main features
+   Result: ☐ Pass ☐ Fail
+   
+☐ Check error handling
+   Result: ☐ Pass ☐ Fail
+
+═══════════════════════════════════════════════════════════════════
+PHASE 8: POST-DEPLOYMENT
+═══════════════════════════════════════════════════════════════════
+
+MONITORING:
+☐ Check Laravel logs
+   Location: storage/logs/laravel.log
+   Command: tail -f storage/logs/laravel.log
+   
+☐ Monitor cPanel error logs
+   Location: cPanel → Metrics → Errors
+   
+☐ Set up log rotation
+   Result: ☐ Done ☐ Skipped
+
+SECURITY:
+☐ .env file NOT publicly accessible
+☐ storage/ directory NOT publicly accessible
+☐ .htaccess rules active
+☐ HTTPS enforced (no HTTP access)
+☐ Database user has minimum required privileges
+
+BACKUP:
+☐ Database backup taken
+   Method: ☐ cPanel Backup ☐ Manual Export ☐ Automated
+   
+☐ Files backup taken
+   Method: ☐ cPanel Backup ☐ Git Repository ☐ Manual
+
+DOCUMENTATION:
+☐ Update README.md with production URL
+☐ Document any custom configurations
+☐ Share credentials with team (securely)
+
+═══════════════════════════════════════════════════════════════════
+TROUBLESHOOTING LOG
+═══════════════════════════════════════════════════════════════════
+
+Issue 1:
+Description: ____________________
+Solution: ____________________
+Status: ☐ Resolved ☐ Pending
+
+Issue 2:
+Description: ____________________
+Solution: ____________________
+Status: ☐ Resolved ☐ Pending
+
+Issue 3:
+Description: ____________________
+Solution: ____________________
+Status: ☐ Resolved ☐ Pending
+
+═══════════════════════════════════════════════════════════════════
+SIGN-OFF
+═══════════════════════════════════════════════════════════════════
+
+Deployment completed by: ____________________
+Date & Time: ____________________
+Total deployment time: ____________________
+Overall status: ☐ SUCCESS ☐ PARTIAL ☐ FAILED
+
+Notes:
+_________________________________________________________________
+_________________________________________________________________
+_________________________________________________________________
+
+═══════════════════════════════════════════════════════════════════
+QUICK REFERENCE
+═══════════════════════════════════════════════════════════════════
+
+Test Accounts:
+- Admin: daffa@gmail.com / password123
+- Driver Jakarta: driver.jakarta@gerobaks.com / mitra123
+- Driver Bandung: driver.bandung@gerobaks.com / mitra123
+- Driver Surabaya: driver.surabaya@gerobaks.com / mitra123
+
+Important URLs:
+- Production API: https://gerobaks.dumeg.com
+- API Docs: https://gerobaks.dumeg.com/docs
+- cPanel: https://gerobaks.dumeg.com:2083
+
+Emergency Commands:
+- Clear cache: php artisan cache:clear
+- Clear config: php artisan config:clear
+- Clear routes: php artisan route:clear
+- Reset all: php artisan optimize:clear
+
+═══════════════════════════════════════════════════════════════════
+END OF CHECKLIST
+═══════════════════════════════════════════════════════════════════
