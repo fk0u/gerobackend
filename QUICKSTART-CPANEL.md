@@ -202,20 +202,21 @@ Buka browser: `https://gerobaks.dumeg.com/docs`
 
 ## 🎯 Common Issues & Quick Fix
 
-| Issue            | Quick Fix                                           |
-| ---------------- | --------------------------------------------------- |
-| 500 Error        | Check `.env` exists, run `php artisan config:clear` |
-| Database Error   | Verify credentials in `.env`, check user privileges |
-| Permission Error | Run `chmod -R 755 storage bootstrap/cache`          |
-| 404 on /api/\*   | Check `.htaccess` in public/, enable mod_rewrite    |
-| CORS Error       | Middleware already fixed, clear cache               |
-| **Session Payload Error** | **Run `./fix-session-payload.sh` or see below** |
+| Issue                     | Quick Fix                                           |
+| ------------------------- | --------------------------------------------------- |
+| 500 Error                 | Check `.env` exists, run `php artisan config:clear` |
+| Database Error            | Verify credentials in `.env`, check user privileges |
+| Permission Error          | Run `chmod -R 755 storage bootstrap/cache`          |
+| 404 on /api/\*            | Check `.htaccess` in public/, enable mod_rewrite    |
+| CORS Error                | Middleware already fixed, clear cache               |
+| **Session Payload Error** | **Run `./fix-session-payload.sh` or see below**     |
 
 ### 🔥 Session Payload Error (Production)
 
 If you see: `SQLSTATE[22001]: Data too long for column 'payload'`
 
 **Quick Fix:**
+
 ```bash
 # Via SSH
 cd public_html/backend
@@ -224,6 +225,7 @@ chmod +x fix-session-payload.sh
 ```
 
 **Or via phpMyAdmin:**
+
 ```sql
 ALTER TABLE sessions MODIFY COLUMN payload LONGTEXT NOT NULL;
 ```

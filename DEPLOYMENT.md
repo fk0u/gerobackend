@@ -571,14 +571,16 @@ php artisan log:clear  # jika ada command ini
 ### Issue 1: "Data too long for column 'payload'" Error
 
 **Error:**
+
 ```
-SQLSTATE[22001]: String data, right truncated: 1406 
+SQLSTATE[22001]: String data, right truncated: 1406
 Data too long for column 'payload' at row 1
 ```
 
 **Cause:** Sessions table `payload` column (TEXT type, ~64KB) is too small for large session data.
 
 **Quick Fix (Recommended - Via SSH):**
+
 ```bash
 cd public_html/backend
 chmod +x fix-session-payload.sh
@@ -586,36 +588,41 @@ chmod +x fix-session-payload.sh
 ```
 
 **Manual Fix (Via phpMyAdmin):**
+
 ```sql
 -- Run this SQL in phpMyAdmin
 ALTER TABLE sessions MODIFY COLUMN payload LONGTEXT NOT NULL;
 
 -- Then record migration
-INSERT INTO migrations (migration, batch) 
-VALUES ('2025_01_14_000001_fix_sessions_payload_column', 
+INSERT INTO migrations (migration, batch)
+VALUES ('2025_01_14_000001_fix_sessions_payload_column',
         (SELECT MAX(batch) + 1 FROM (SELECT batch FROM migrations) AS temp));
 ```
 
 **Or Use Migration:**
+
 ```bash
 php artisan migrate --force --path=database/migrations/2025_01_14_000001_fix_sessions_payload_column.php
 ```
 
 **Verify Fix:**
+
 ```sql
 SHOW COLUMNS FROM sessions LIKE 'payload';
 -- Type should be: longtext
 ```
 
 **Related Files:**
-- `SESSION_PAYLOAD_FIX.md` - Full documentation
-- `fix-session-payload.sh` - Auto-fix script
-- `fix-session-payload.sql` - Manual SQL script
-- `database/migrations/2025_01_14_000001_fix_sessions_payload_column.php` - Migration
+
+-   `SESSION_PAYLOAD_FIX.md` - Full documentation
+-   `fix-session-payload.sh` - Auto-fix script
+-   `fix-session-payload.sql` - Manual SQL script
+-   `database/migrations/2025_01_14_000001_fix_sessions_payload_column.php` - Migration
 
 ### Issue 2: 500 Internal Server Error
 
 **Quick Checks:**
+
 ```bash
 # Check .env exists
 ls -la .env
@@ -636,6 +643,7 @@ chmod -R 755 storage bootstrap/cache
 ### Issue 3: Database Connection Error
 
 **Check .env:**
+
 ```env
 DB_CONNECTION=mysql
 DB_HOST=localhost
@@ -646,6 +654,7 @@ DB_PASSWORD=your_password
 ```
 
 **Test connection:**
+
 ```bash
 php artisan db:show
 ```
@@ -653,31 +662,36 @@ php artisan db:show
 ### Issue 4: CORS Error from Flutter App
 
 **Already fixed in middleware, just clear cache:**
+
 ```bash
 php artisan config:clear
 php artisan route:clear
 ```
 
 **Verify CORS middleware:**
+
 ```bash
 php test_cors.php
 ```
 
-### Issue 5: 404 on /api/* Routes
+### Issue 5: 404 on /api/\* Routes
 
 **Check .htaccess:**
+
 ```bash
 # Ensure .htaccess exists in public/
 cat public/.htaccess
 ```
 
 **Regenerate .htaccess:**
+
 ```bash
 php artisan route:clear
 ```
 
 **Check mod_rewrite enabled:**
-- In cPanel → Software → Select PHP Version → Check "rewrite" module
+
+-   In cPanel → Software → Select PHP Version → Check "rewrite" module
 
 ---
 

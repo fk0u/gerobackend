@@ -3,26 +3,30 @@
 ## Problem
 
 **Error:**
+
 ```
 SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'payload' at row 1
 ```
 
 **Terjadi saat:**
-- User mengakses halaman dokumentasi `/openapi.yaml`
-- Laravel mencoba menyimpan session data
-- Payload session melebihi kapasitas kolom database
+
+-   User mengakses halaman dokumentasi `/openapi.yaml`
+-   Laravel mencoba menyimpan session data
+-   Payload session melebihi kapasitas kolom database
 
 ## Root Cause
 
 Tabel `sessions` di production database menggunakan kolom `payload` dengan tipe `TEXT`:
-- **TEXT:** Maksimal ~65,535 bytes (~64KB)
-- **Session data:** Bisa melebihi 64KB ketika menyimpan banyak data
+
+-   **TEXT:** Maksimal ~65,535 bytes (~64KB)
+-   **Session data:** Bisa melebihi 64KB ketika menyimpan banyak data
 
 ## Solution
 
 ### 1️⃣ Apply Migration (RECOMMENDED)
 
 **Via SSH:**
+
 ```bash
 ssh username@gerobaks.dumeg.com
 cd public_html/backend
@@ -30,9 +34,10 @@ php artisan migrate --force
 ```
 
 Migration akan:
-- ✅ Mengubah kolom `payload` dari `TEXT` → `LONGTEXT`
-- ✅ LONGTEXT support hingga ~4GB data
-- ✅ Tidak ada data yang hilang (safe operation)
+
+-   ✅ Mengubah kolom `payload` dari `TEXT` → `LONGTEXT`
+-   ✅ LONGTEXT support hingga ~4GB data
+-   ✅ Tidak ada data yang hilang (safe operation)
 
 ### 2️⃣ Manual Fix (jika migration gagal)
 
@@ -40,11 +45,12 @@ Migration akan:
 
 ```sql
 -- Alter sessions table
-ALTER TABLE `sessions` 
+ALTER TABLE `sessions`
 MODIFY COLUMN `payload` LONGTEXT NOT NULL;
 ```
 
 **Atau via MySQL command line:**
+
 ```bash
 mysql -u gerobaks_user -p gerobaks_db
 ```
@@ -58,11 +64,13 @@ EXIT;
 ## Verification
 
 **Check kolom type:**
+
 ```sql
 DESCRIBE sessions;
 ```
 
 **Expected result:**
+
 ```
 Field         | Type      | Null | Key | Default | Extra
 --------------+-----------+------+-----+---------+-------
@@ -75,6 +83,7 @@ last_activity | int       | NO   | MUL | NULL    |
 ```
 
 **Test fix:**
+
 ```bash
 # Clear existing sessions
 php artisan session:flush
@@ -87,9 +96,10 @@ curl -I https://gerobaks.dumeg.com/openapi.yaml
 ## Why This Happened
 
 Laravel's default session migration uses `TEXT` type, which is fine for small sessions but fails when:
-- Session stores large data (like OpenAPI spec in memory)
-- Multiple middleware add data to session
-- Session contains encrypted/serialized complex objects
+
+-   Session stores large data (like OpenAPI spec in memory)
+-   Multiple middleware add data to session
+-   Session contains encrypted/serialized complex objects
 
 ## Prevention
 
@@ -102,16 +112,18 @@ Laravel's default session migration uses `TEXT` type, which is fine for small se
 **File:** `database/migrations/2025_01_14_000001_fix_sessions_payload_column.php`
 
 **What it does:**
+
 ```php
 Schema::table('sessions', function (Blueprint $table) {
     $table->longText('payload')->change();
 });
 ```
 
-**Safe to run:** 
-- ✅ Non-destructive (data preserved)
-- ✅ Quick operation (~1 second)
-- ✅ No downtime required
+**Safe to run:**
+
+-   ✅ Non-destructive (data preserved)
+-   ✅ Quick operation (~1 second)
+-   ✅ No downtime required
 
 ## Quick Deploy Steps
 
@@ -165,6 +177,7 @@ curl https://gerobaks.dumeg.com/openapi.yaml
 ## Alternative Solutions (Not Recommended)
 
 ### Use Cache Driver Instead of Database
+
 ```env
 # In .env
 SESSION_DRIVER=file  # or redis if available
@@ -174,6 +187,7 @@ SESSION_DRIVER=file  # or redis if available
 **Cons:** File-based sessions harder to share across servers
 
 ### Increase Session Lifetime (Reduce Data)
+
 ```env
 # In .env
 SESSION_LIFETIME=120  # minutes (default)
@@ -185,22 +199,26 @@ SESSION_LIFETIME=120  # minutes (default)
 ## Post-Fix Verification
 
 ✅ **Check migration status:**
+
 ```bash
 php artisan migrate:status
 ```
 
 ✅ **Check database schema:**
+
 ```sql
 SHOW COLUMNS FROM sessions LIKE 'payload';
 ```
 
 ✅ **Test affected endpoint:**
+
 ```bash
 curl -I https://gerobaks.dumeg.com/openapi.yaml
 curl -I https://gerobaks.dumeg.com/docs
 ```
 
 ✅ **Monitor logs:**
+
 ```bash
 tail -f storage/logs/laravel.log
 ```
@@ -219,25 +237,25 @@ ALTER TABLE sessions MODIFY COLUMN payload TEXT NOT NULL;
 
 ## Summary
 
-| Item | Before | After |
-|------|--------|-------|
-| Column Type | TEXT (~64KB) | LONGTEXT (~4GB) |
-| Max Session Size | ~65,535 bytes | ~4,294,967,295 bytes |
-| Error Status | ❌ Occurs frequently | ✅ Fixed |
-| Performance | Normal | Normal (no impact) |
+| Item             | Before               | After                |
+| ---------------- | -------------------- | -------------------- |
+| Column Type      | TEXT (~64KB)         | LONGTEXT (~4GB)      |
+| Max Session Size | ~65,535 bytes        | ~4,294,967,295 bytes |
+| Error Status     | ❌ Occurs frequently | ✅ Fixed             |
+| Performance      | Normal               | Normal (no impact)   |
 
 ## Related Files
 
-- **Migration:** `database/migrations/2025_01_14_000001_fix_sessions_payload_column.php`
-- **Config:** `config/session.php`
-- **Environment:** `.env` → `SESSION_DRIVER=database`
+-   **Migration:** `database/migrations/2025_01_14_000001_fix_sessions_payload_column.php`
+-   **Config:** `config/session.php`
+-   **Environment:** `.env` → `SESSION_DRIVER=database`
 
 ## Status
 
-- [x] Migration created
-- [ ] Migration applied to production
-- [ ] Verified working
-- [ ] Documented
+-   [x] Migration created
+-   [ ] Migration applied to production
+-   [ ] Verified working
+-   [ ] Documented
 
 **Next Action:** Apply migration to production server!
 
