@@ -26,7 +26,8 @@ class SubscriptionPlanController extends Controller
             $query->where('is_active', true);
         }
 
-        $plans = $query->orderBy('sort_order')->get();
+        // Order by price since sort_order column doesn't exist in database
+        $plans = $query->orderBy('price')->get();
 
         return $this->successResponse(
             SubscriptionPlanResource::collection($plans),

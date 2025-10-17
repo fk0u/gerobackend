@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,15 +34,23 @@ class Schedule extends Model
     ];
 
     protected $casts = [
-        'pickup_latitude' => 'decimal:8',
-        'pickup_longitude' => 'decimal:8',
         'scheduled_at' => 'datetime',
-        'price' => 'decimal:2',
         'estimated_duration' => 'integer',
-        // Legacy casts
-        'latitude' => 'decimal:8',
-        'longitude' => 'decimal:8',
     ];
+
+    /**
+     * Get attributes with safe decimal casting
+     */
+    protected function casts(): array
+    {
+        return [
+            'pickup_latitude' => 'decimal:8',
+            'pickup_longitude' => 'decimal:8',
+            'price' => 'decimal:2',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
+        ];
+    }
 
     public function trackings(): HasMany
     {
@@ -62,6 +71,44 @@ class Schedule extends Model
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * Accessor for safe decimal casting - prevents "Unable to cast value to decimal" error
+     */
+    protected function pickupLatitude(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value !== null && $value !== '' ? (string) $value : null,
+        );
+    }
+
+    protected function pickupLongitude(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value !== null && $value !== '' ? (string) $value : null,
+        );
+    }
+
+    protected function latitude(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value !== null && $value !== '' ? (string) $value : null,
+        );
+    }
+
+    protected function longitude(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value !== null && $value !== '' ? (string) $value : null,
+        );
+    }
+
+    protected function price(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value !== null && $value !== '' ? (string) $value : null,
+        );
     }
 
     /**

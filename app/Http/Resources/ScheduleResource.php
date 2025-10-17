@@ -17,25 +17,42 @@ class ScheduleResource extends JsonResource
             'mitra_name' => $this->mitra?->name,
             'service_type' => $this->service_type,
             'pickup_address' => $this->pickup_address,
-            'pickup_latitude' => $this->pickup_latitude ? (float) $this->pickup_latitude : null,
-            'pickup_longitude' => $this->pickup_longitude ? (float) $this->pickup_longitude : null,
+            'pickup_latitude' => $this->safeDecimal($this->pickup_latitude),
+            'pickup_longitude' => $this->safeDecimal($this->pickup_longitude),
             'scheduled_at' => $this->scheduled_at?->toDateTimeString(),
             'estimated_duration' => $this->estimated_duration,
             'notes' => $this->notes,
             'status' => $this->status,
             'payment_method' => $this->payment_method,
-            'price' => $this->price ? (float) $this->price : null,
+            'price' => $this->safeDecimal($this->price),
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
             // Legacy fields for backward compatibility
             'title' => $this->service_type ?? 'Pickup Service',
             'description' => $this->notes,
-            'latitude' => $this->pickup_latitude ? (float) $this->pickup_latitude : null,
-            'longitude' => $this->pickup_longitude ? (float) $this->pickup_longitude : null,
+            'latitude' => $this->safeDecimal($this->latitude ?? $this->pickup_latitude),
+            'longitude' => $this->safeDecimal($this->longitude ?? $this->pickup_longitude),
             'assigned_to' => $this->mitra_id,
             'assigned_user' => new UserResource($this->whenLoaded('mitra')),
             'trackings_count' => $this->when(isset($this->trackings_count), $this->trackings_count),
             'trackings' => TrackingResource::collection($this->whenLoaded('trackings')),
         ];
+    }
+
+    /**
+     * Safely convert value to float, handling null/empty strings
+     */
+    private function safeDecimal($value): ?float
+    {
+        if ($value === null || $value === '' || $value === '0') {
+            return null;
+        }
+
+        // Check if it's a valid number
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return null;
     }
 }

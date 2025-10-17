@@ -20,10 +20,10 @@ class Tracking extends Model
     ];
 
     protected $casts = [
-        'latitude' => 'float',
-        'longitude' => 'float',
-        'speed' => 'float',
-        'heading' => 'float',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
+        'speed' => 'decimal:2',
+        'heading' => 'decimal:2',
         'recorded_at' => 'datetime',
     ];
 

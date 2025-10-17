@@ -12,9 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // NOTE: Do NOT use EnsureFrontendRequestsAreStateful for pure API token auth (mobile apps)
+        // That middleware is only for SPA cookie-based auth, not Bearer token auth
+        
         // Register CORS middleware for API routes
         $middleware->appendToGroup('api', [\App\Http\Middleware\Cors::class]);
-        // Sanctum auth guard & role middleware will be applied per-route; ensure role middleware alias
+        
+        // Register role authorization middleware alias
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleAuthorization::class,
         ]);
