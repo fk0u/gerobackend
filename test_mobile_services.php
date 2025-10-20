@@ -22,13 +22,14 @@ $endUser = User::where('email', 'daffa@gmail.com')->first();
 $endToken = $endUser->createToken('mobile-test')->plainTextToken;
 echo "✅ End User (daffa@gmail.com) - Token: " . substr($endToken, 0, 20) . "...\n";
 
-$mitra = User::where('email', 'mitra@test.com')->first();
+$mitra = User::where('email', 'driver.jakarta@gerobaks.com')->first();
 $mitraToken = $mitra->createToken('mobile-test')->plainTextToken;
-echo "✅ Mitra (mitra@test.com) - Token: " . substr($mitraToken, 0, 20) . "...\n";
+echo "✅ Mitra (driver.jakarta@gerobaks.com) - Token: " . substr($mitraToken, 0, 20) . "...\n";
 
-$admin = User::where('email', 'admin@test.com')->first();
+// No admin user seeded, use end_user as fallback for admin tests
+$admin = User::where('email', 'test@example.com')->first();
 $adminToken = $admin->createToken('mobile-test')->plainTextToken;
-echo "✅ Admin (admin@test.com) - Token: " . substr($adminToken, 0, 20) . "...\n\n";
+echo "✅ Admin/Test User (test@example.com) - Token: " . substr($adminToken, 0, 20) . "...\n\n";
 
 $passCount = 3; // Login
 $failCount = 0;
