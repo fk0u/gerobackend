@@ -20,11 +20,17 @@ class Schedule extends Model
         'pickup_latitude',
         'pickup_longitude',
         'scheduled_at',
+        'started_at',
+        'completed_at',
+        'cancelled_at',
         'estimated_duration',
         'notes',
         'status',
         'payment_method',
         'price',
+        'waste_items',
+        'total_estimated_weight',
+        'actual_weight',
         // Legacy fields for backward compatibility
         'title',
         'description',
@@ -35,7 +41,11 @@ class Schedule extends Model
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'estimated_duration' => 'integer',
+        'waste_items' => 'array',
     ];
 
     /**
@@ -47,6 +57,8 @@ class Schedule extends Model
             'pickup_latitude' => 'decimal:8',
             'pickup_longitude' => 'decimal:8',
             'price' => 'decimal:2',
+            'total_estimated_weight' => 'decimal:2',
+            'actual_weight' => 'decimal:2',
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
         ];

@@ -162,6 +162,66 @@ class ScheduleController extends Controller
         );
     }
 
+    /**
+     * Mitra accepts a schedule (assigns themselves)
+     */
+    public function accept(Request $request, int $id)
+    {
+        $schedule = Schedule::findOrFail($id);
+        
+        // Check if schedule can be accepted
+        if ($schedule->status !== 'pending') {
+            return $this->errorResponse('Schedule is not available for acceptance', 422);
+        }
+        
+        if ($schedule->mitra_id !== null) {
+            return $this->errorResponse('Schedule is already assigned to another mitra', 422);
+        }
+        
+        // Assign mitra and update status to confirmed
+        $schedule->update([
+            'mitra_id' => $request->user()->id,
+            'status' => 'confirmed',
+        ]);
+        
+        $schedule->load(['user', 'mitra']);
+        
+        return $this->successResponse(
+            new ScheduleResource($schedule),
+            'Schedule accepted successfully'
+        );
+    }
+
+    /**
+     * Mitra starts the pickup process
+     */
+    public function start(Request $request, int $id)
+    {
+        $schedule = Schedule::findOrFail($id);
+        
+        // Check if schedule can be started
+        if ($schedule->status !== 'confirmed') {
+            return $this->errorResponse('Schedule must be confirmed before starting', 422);
+        }
+        
+        // Verify mitra is assigned to this schedule
+        if ($schedule->mitra_id !== $request->user()->id) {
+            return $this->errorResponse('You are not assigned to this schedule', 403);
+        }
+        
+        $schedule->update([
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+        
+        $schedule->load(['user', 'mitra']);
+        
+        return $this->successResponse(
+            new ScheduleResource($schedule),
+            'Schedule started successfully'
+        );
+    }
+
     public function complete(Request $request, int $id)
     {
         $schedule = Schedule::findOrFail($id);
@@ -171,17 +231,34 @@ class ScheduleController extends Controller
             return $this->errorResponse('Cannot complete schedule in current status', 422);
         }
         
+        // Verify mitra is assigned to this schedule
+        if ($schedule->mitra_id !== $request->user()->id && $request->user()->role !== 'admin') {
+            return $this->errorResponse('You are not assigned to this schedule', 403);
+        }
+        
         // Validate completion data
         $data = $request->validate([
             'completion_notes' => 'nullable|string|max:1000',
             'actual_duration' => 'nullable|integer|min:1',
+            'actual_weight' => 'nullable|numeric|min:0',
         ]);
         
-        $schedule->update([
+        $updateData = [
             'status' => 'completed',
-            'notes' => ($schedule->notes ?? '') . '\n\nCompletion: ' . ($data['completion_notes'] ?? 'Completed'),
             'completed_at' => now(),
-        ]);
+        ];
+        
+        // Add actual_weight if provided
+        if (isset($data['actual_weight'])) {
+            $updateData['actual_weight'] = $data['actual_weight'];
+        }
+        
+        // Append completion notes
+        if (!empty($data['completion_notes'])) {
+            $updateData['notes'] = ($schedule->notes ?? '') . '\n\nCompletion: ' . $data['completion_notes'];
+        }
+        
+        $schedule->update($updateData);
         
         $schedule->load(['user', 'mitra']);
         
@@ -198,6 +275,16 @@ class ScheduleController extends Controller
         // Check if schedule can be cancelled
         if (in_array($schedule->status, ['completed', 'cancelled'])) {
             return $this->errorResponse('Cannot cancel schedule in current status', 422);
+        }
+        
+        // Verify user has permission (own schedule or assigned mitra or admin)
+        $user = $request->user();
+        $canCancel = $user->role === 'admin' 
+            || $schedule->user_id === $user->id 
+            || $schedule->mitra_id === $user->id;
+            
+        if (!$canCancel) {
+            return $this->errorResponse('You do not have permission to cancel this schedule', 403);
         }
         
         // Validate cancellation data
