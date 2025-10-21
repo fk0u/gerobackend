@@ -18,8 +18,14 @@ return new class extends Migration
         // Backup existing user data
         $existingUsers = DB::table('users')->get()->toArray();
         
+        // Disable foreign key checks temporarily
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        
         // Drop the corrupt table
         Schema::dropIfExists('users');
+        
+        // Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         
         // Recreate with correct structure
         Schema::create('users', function (Blueprint $table) {
