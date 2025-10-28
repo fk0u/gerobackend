@@ -25,6 +25,24 @@ class ScheduleResource extends JsonResource
             'status' => $this->status,
             'payment_method' => $this->payment_method,
             'price' => $this->safeDecimal($this->price),
+            'frequency' => $this->frequency ?? 'once',
+            'waste_type' => $this->waste_type,
+            'estimated_weight' => $this->safeDecimal($this->estimated_weight),
+            'contact_name' => $this->contact_name,
+            'contact_phone' => $this->contact_phone,
+            'is_paid' => $this->is_paid ?? false,
+            'amount' => $this->safeDecimal($this->amount),
+            'additional_wastes' => $this->whenLoaded('additionalWastes', function() {
+                return $this->additionalWastes->map(function($waste) {
+                    return [
+                        'id' => $waste->id,
+                        'waste_type' => $waste->waste_type,
+                        'estimated_weight' => $this->safeDecimal($waste->estimated_weight),
+                        'notes' => $waste->notes,
+                        'created_at' => $waste->created_at?->toDateTimeString(),
+                    ];
+                });
+            }),
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
             // Legacy fields for backward compatibility

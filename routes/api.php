@@ -67,8 +67,6 @@ Route::get('/schedules/{id}', [ScheduleController::class, 'show']);
 Route::middleware(['auth:sanctum','role:mitra,admin'])->group(function () {
 	Route::post('/schedules', [ScheduleController::class, 'store']);
 	Route::patch('/schedules/{id}', [ScheduleController::class, 'update']);
-	Route::post('/schedules/{id}/accept', [ScheduleController::class, 'accept']);
-	Route::post('/schedules/{id}/start', [ScheduleController::class, 'start']);
 	Route::post('/schedules/{id}/complete', [ScheduleController::class, 'complete']);
 	Route::post('/schedules/{id}/cancel', [ScheduleController::class, 'cancel']);
 });
