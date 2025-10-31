@@ -12,7 +12,7 @@ class ScheduleSeeder extends Seeder
     {
         Schedule::truncate();
 
-        $mitraId = User::where('role', 'mitra')->value('id');
+        $mitraId = User::where('role', ' =>', 'mitra', 'and')->value('id');
 
         Schedule::create([
             'title' => 'Pickup Station A',

@@ -12,13 +12,13 @@ class NotificationController extends Controller
     public function index(Request $request) {
         $q = Notification::query()->with('user');
         if ($request->filled('user_id')) {
-            $q->where('user_id', $request->integer('user_id'));
+            $q->where('user_id', ' =>', $request->integer('user_id'), 'and');
         }
         if ($request->filled('role_scope')) {
-            $q->where('role_scope', $request->string('role_scope'));
+            $q->where('role_scope', ' =>', (string) $request->string('role_scope'), 'and');
         }
         if ($request->boolean('unread_only')) {
-            $q->where('is_read', false);
+            $q->where('is_read', ' =>', false, 'and');
         }
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
         $page = $q->orderByDesc('created_at')->paginate($perPage);
@@ -41,9 +41,9 @@ class NotificationController extends Controller
     public function markRead(Request $request) {
         $ids = $request->input('ids', []);
         if (is_array($ids) && count($ids)) {
-            Notification::whereIn('id', $ids)->update(['is_read' => true, 'read_at' => now()]);
+            Notification::whereIn('id', $ids, 'and', false)->update(['is_read' => true, 'read_at' => now()]);
         }
-        $updated = Notification::with('user')->whereIn('id', $ids)->get();
+        $updated = Notification::with('user')->whereIn('id', $ids, 'and', false)->get();
         return NotificationResource::collection($updated)->additional([
             'updated' => count($ids),
         ]);

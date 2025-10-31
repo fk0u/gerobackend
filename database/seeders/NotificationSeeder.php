@@ -14,7 +14,7 @@ class NotificationSeeder extends Seeder
         Notification::query()->delete();
 
         $now = Carbon::now();
-        $endUsers = User::where('role','end_user')->get();
+    $endUsers = User::where('role', ' =>', 'end_user', 'and')->get();
         foreach ($endUsers as $index => $user) {
             Notification::create([
                 'user_id' => $user->id,

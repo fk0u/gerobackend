@@ -12,10 +12,10 @@ class BalanceSeeder extends Seeder
 {
     public function run(): void
     {
-    BalanceEntry::query()->delete();
+        BalanceEntry::query()->delete();
 
         // Welcome bonus for all end users
-        $users = User::where('role','end_user')->get();
+    $users = User::where('role', ' =>', 'end_user', 'and')->get();
         foreach ($users as $user) {
             BalanceEntry::create([
                 'user_id' => $user->id,
@@ -45,7 +45,7 @@ class BalanceSeeder extends Seeder
         }
 
         // Reward points & commission for completed orders
-        $completedOrders = Order::where('status', 'completed')->get();
+    $completedOrders = Order::where('status', ' =>', 'completed', 'and')->get();
         foreach ($completedOrders as $order) {
             if ($order->user_id && $order->total_points) {
                 BalanceEntry::create([

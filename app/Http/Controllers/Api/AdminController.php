@@ -35,35 +35,35 @@ class AdminController extends Controller
     {
         try {
             // Get various statistics
-            $totalUsers = User::count();
-            $totalMitra = User::where('role', 'mitra')->count();
-            $totalOrders = DB::table('orders')->count();
-            $totalServices = DB::table('services')->count();
-            $pendingOrders = DB::table('orders')->where('status', 'pending')->count();
-            $completedOrders = DB::table('orders')->where('status', 'completed')->count();
-            $activeUsers = User::where('status', 'active')->count();
-            $activeMitra = User::where('role', 'mitra')->where('status', 'active')->count();
-            
+            $totalUsers = User::count('*');
+            $totalMitra = User::where('role', ' =>', 'mitra', 'and')->count('*');
+            $totalOrders = DB::table('orders')->count('*');
+            $totalServices = DB::table('services')->count('*');
+            $pendingOrders = DB::table('orders')->where('status', ' =>', 'pending', 'and')->count('*');
+            $completedOrders = DB::table('orders')->where('status', ' =>', 'completed', 'and')->count('*');
+            $activeUsers = User::where('status', ' =>', 'active', 'and')->count('*');
+            $activeMitra = User::where('role', ' =>', 'mitra', 'and')->where('status', ' =>', 'active', 'and')->count('*');
+
             // Revenue calculations
-            $totalRevenue = DB::table('payments')->where('status', 'paid')->sum('amount');
+            $totalRevenue = DB::table('payments')->where('status', ' =>', 'paid', 'and')->sum('amount');
             $monthlyRevenue = DB::table('payments')
-                ->where('status', 'paid')
-                ->whereMonth('created_at', now()->month)
+                ->where('status', ' =>', 'paid', 'and')
+                ->whereMonth('created_at', ' =>', now()->month, 'and')
                 ->sum('amount');
-            
+
             // Orders by status
             $ordersByStatus = DB::table('orders')
                 ->select('status', DB::raw('count(*) as count'))
                 ->groupBy('status')
                 ->pluck('count', 'status')
                 ->toArray();
-            
+
             // Users by role
             $usersByRole = User::select('role', DB::raw('count(*) as count'))
                 ->groupBy('role')
                 ->pluck('count', 'role')
                 ->toArray();
-            
+
             // Recent activities (simplified)
             $recentActivities = [
                 [
@@ -126,18 +126,18 @@ class AdminController extends Controller
             
             // Apply filters
             if ($request->has('role')) {
-                $query->where('role', $request->role);
+                $query->where('role', ' =>', $request->role, 'and');
             }
             
             if ($request->has('status')) {
-                $query->where('status', $request->status);
+                $query->where('status', ' =>', $request->status, 'and');
             }
             
             if ($request->has('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                                            $q->where('name', 'like', "%{$search}%")
+                                                ->orWhere('email', 'like', "%{$search}%");
                 });
             }
             

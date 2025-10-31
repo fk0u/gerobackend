@@ -13,8 +13,12 @@ class RatingController extends Controller
 {
     public function index(Request $request) {
         $q = Rating::query()->with(['order','user','mitra']);
-        if ($request->filled('mitra_id')) $q->where('mitra_id', $request->integer('mitra_id'));
-        if ($request->filled('order_id')) $q->where('order_id', $request->integer('order_id'));
+        if ($request->filled('mitra_id')) {
+            $q->where('mitra_id', ' =>', $request->integer('mitra_id'), 'and');
+        }
+        if ($request->filled('order_id')) {
+            $q->where('order_id', ' =>', $request->integer('order_id'), 'and');
+        }
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
         $page = $q->latest()->paginate($perPage);
         $page->getCollection()->transform(fn($r) => new RatingResource($r));
@@ -45,7 +49,9 @@ class RatingController extends Controller
                 'order_id' => ['Order has no assigned mitra to rate.']
             ]);
         }
-        $exists = Rating::where('order_id', $order->id)->where('user_id', $data['user_id'])->exists();
+        $exists = Rating::where('order_id', ' =>', $order->id, 'and')
+            ->where('user_id', ' =>', $data['user_id'], 'and')
+            ->exists();
         if ($exists) {
             throw ValidationException::withMessages([
                 'order_id' => ['You have already rated this order.']

@@ -36,7 +36,7 @@ class PaymentSeeder extends Seeder
         }
 
         // Seed historical top-ups for demo balances
-        $users = User::where('role', 'end_user')->get();
+    $users = User::where('role', ' =>', 'end_user', 'and')->get();
         foreach ($users as $index => $user) {
             Payment::updateOrCreate(
                 ['order_id' => null, 'type' => 'topup', 'reference' => 'TOPUP-'.($index+1)],

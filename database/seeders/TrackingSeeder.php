@@ -10,9 +10,9 @@ class TrackingSeeder extends Seeder
 {
     public function run(): void
     {
-        $schedules = Schedule::whereIn('status', ['in_progress', 'completed'])->get();
+        $schedules = Schedule::whereIn('status', ['in_progress', 'completed'], 'and', false)->get();
         if ($schedules->isEmpty()) {
-            $fallback = Schedule::first();
+            $fallback = Schedule::first(['*']);
             if (! $fallback) {
                 return;
             }
@@ -20,7 +20,7 @@ class TrackingSeeder extends Seeder
         }
 
         foreach ($schedules as $schedule) {
-            Tracking::where('schedule_id', $schedule->id)->delete();
+            Tracking::where('schedule_id', ' =>', $schedule->id, 'and')->delete();
 
             $baseLat = (float) $schedule->latitude;
             $baseLng = (float) $schedule->longitude;

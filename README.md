@@ -1,161 +1,185 @@
-# 🚛 Gerobaks API
+# 🚛 Gerobaks Backend API
 
-<div align="center">
+![Laravel](https://img.shields.io/badge/Laravel-10.x-FF2D20?style=flat-square&logo=laravel&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.1+-777BB4?style=flat-square&logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
-[![Laravel](https://img.shields.io/badge/Laravel-12.x-ff2d20.svg)](https://laravel.com)
-[![PHP](https://img.shields.io/badge/PHP-8.3%2B-777bb4.svg)](https://www.php.net/)
-[![Database](https://img.shields.io/badge/Database-MySQL%20%7C%20SQLite-lightgrey.svg)](https://dev.mysql.com/)
-[![Auth](https://img.shields.io/badge/Auth-Laravel%20Sanctum-0d9488.svg)](https://laravel.com/docs/sanctum)
-[![Status](https://img.shields.io/badge/Status-Beta-green.svg)]()
+RESTful API Backend untuk sistem manajemen pengumpulan sampah Gerobaks - Menghubungkan pengguna dengan mitra pengumpul sampah secara efisien.
 
-**REST API yang melayani seluruh fitur aplikasi mobile Gerobaks.**
-
-[📦 Production Deployment](#-production-deployment) | [🚀 Quick Start](START_HERE.md) | [📖 Full Docs](DEPLOYMENT.md)
-
-</div>
+🌐 **Production**: [https://gerobaks.dumeg.com](https://gerobaks.dumeg.com)  
+� **Full API Documentation**: [API_DOCUMENTATION_COMPLETE.md](./API_DOCUMENTATION_COMPLETE.md)  
+👨‍💻 **Developer**: [@fk0u](https://github.com/fk0u)  
+🔗 **Repository**: [https://github.com/fk0u/gerobackend](https://github.com/fk0u/gerobackend)
 
 ---
 
-## 🔴 LISENSI CLOSED SOURCE
+## ✨ Features
 
-> **⚠️ PENTING**: Kode di repository ini sepenuhnya dimiliki oleh **Gerobaks** dan **BUKAN open source**.
-> Semua source code, dokumentasi, dan aset intellectual property berada di bawah perlindungan hukum Gerobaks.
+-   🔐 **Authentication & Authorization** - Laravel Sanctum with role-based access control
+-   � **Schedule Management** - Complete CRUD with mobile app format support
+-   📍 **Real-time Tracking** - GPS tracking for mitra location
+-   💰 **Payment & Balance System** - Top-up, withdrawal, and transaction history
+-   ⭐ **Rating & Feedback** - User rating and feedback system
+-   💬 **Chat System** - Real-time messaging between users and mitra
+-   🔔 **Notifications** - Push notifications for schedule updates
+-   📊 **Dashboard Analytics** - Comprehensive statistics for users and mitra
+-   🎫 **Subscription Management** - Multiple subscription plans
+-   👨‍💼 **Admin Panel** - Complete admin management features
 
 ---
 
-## 🧭 Ikhtisar
+## 🚀 Quick Start
 
-Gerobaks API merupakan layanan backend yang menangani autentikasi, manajemen jadwal pengambilan sampah, pelacakan armada, sistem pembayaran, notifikasi pintar, hingga chatbot AI. API ini dioptimalkan untuk terhubung dengan aplikasi Flutter Gerobaks sekaligus siap diperluas ke kanal lain seperti dashboard internal. Riwayat rilis dan perubahan utama dapat diikuti melalui [`CHANGELOG.md`](CHANGELOG.md).
+### Prerequisites
 
-### Modul Inti
+-   PHP >= 8.1
+-   Composer
+-   MySQL >= 8.0
+-   Laravel 10.x
 
--   👥 **Manajemen Pengguna & Peran**: End-user, mitra (driver), dan admin.
--   🔐 **Autentikasi Token**: Laravel Sanctum untuk login mobile dan integrasi layanan lain.
--   📅 **Jadwal & Order**: CRUD jadwal, penugasan armada, status order real-time.
--   📍 **Pelacakan Armada**: Endpoint tracking lokasi dan estimasi kedatangan.
--   💰 **Saldo & Pembayaran**: Ringkasan saldo, ledger transaksi, integrasi QRIS/e-wallet (mock).
--   🔔 **Notifikasi**: Feed notifikasi, penandaan dibaca, pengaturan preferensi.
--   💬 **Percakapan**: Kanal chat antara pengguna dan petugas mitra.
--   ⭐ **Rating & Feedback**: Kuesioner penilaian layanan.
+### Installation
 
-### Integrasi dengan Aplikasi Mobile
-
--   **Flutter SDK** memanggil API melalui `API_BASE_URL` yang disinkronkan dengan pilihan environment pada halaman dokumentasi internal.
--   **Error monitoring**: Event ID dari Sentry dicatat pada log backend sehingga tim mobile dapat menautkan laporan crash dengan insiden server.
--   **Payload terenkripsi**: Field sensitif (alamat, catatan pembayaran, pesan chat) sudah dienkripsi oleh backend sebelum dikirimkan ke mobile, kompatibel dengan deserializer di aplikasi.
--   **Realtime feedback loop**: Endpoint health check (`/api/health`) dan ping server pada dokumentasi membantu QA mobile mengecek kesiapan environment.
-
-## 🛠️ Teknologi
-
-| Layer          | Teknologi                                            |
-| -------------- | ---------------------------------------------------- |
-| Framework      | Laravel 12.x                                         |
-| Bahasa         | PHP 8.3+, TypeScript (Vite assets opsional)          |
-| Autentikasi    | Laravel Sanctum, hashed tokens                       |
-| Database       | MySQL 8 / MariaDB 10.5 / SQLite (pengembangan cepat) |
-| Queue & Events | Database queue, event broadcasting, job pipeline     |
-| Storage        | Local disk (pengembangan), siap S3 kompatibel        |
-| Observability  | Sentry Laravel SDK (error & performance telemetry)   |
-| Testing        | PHPUnit, Pest (optional), Laravel test suite         |
-
-## 📘 Dokumentasi API (Swagger/OpenAPI)
-
--   File spesifikasi utama tersedia di `docs/openapi.yaml`.
--   Seluruh `summary` dan `description` memiliki versi Bahasa Indonesia (**ID**) dan Inggris (**EN**).
--   Bukalah menggunakan tool seperti [Swagger UI](https://github.com/swagger-api/swagger-ui), [Stoplight Studio](https://stoplight.io/studio/), atau ekstensi VS Code "OpenAPI".
-
-### Menjalankan Swagger UI Lokal
+1. **Clone the repository**
 
 ```bash
-git clone https://github.com/swagger-api/swagger-ui.git
-cd swagger-ui
-npm install
-npm start
+git clone https://github.com/fk0u/gerobackend.git
+cd gerobackend
 ```
 
-Setelah server berjalan di `http://localhost:3200/`, masukkan URL file `docs/openapi.yaml` Anda (misal `http://127.0.0.1:8000/docs/openapi.yaml` jika disajikan via server statis).
-
-### Tips Multilingual
-
--   Gunakan anotasi **EN** / **ID** pada dokumen sebagai panduan cepat untuk bahasa.
--   Tambahkan ekstensi khusus (mis. `x-i18n`) bila membutuhkan versi bahasa tambahan.
-
-## ✅ Prasyarat
-
--   PHP 8.3 atau lebih baru
--   Composer 2.6+
--   MySQL/MariaDB (opsional SQLite untuk local)
--   Node.js 18+ (jika ingin build asset Vite)
--   Redis (opsional, dapat diganti database queue)
-
-## 🚀 Setup Pengembangan Lokal
-
-### 1. Clone & Inisialisasi
+2. **Install dependencies**
 
 ```bash
-git clone https://github.com/aji-aali/gerobaks-api.git
-cd gerobaks-api
 composer install
 ```
 
-### 2. Konfigurasi Environment
+3. **Environment setup**
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-Sesuaikan variabel berikut:
+4. **Configure database** (edit `.env`)
 
-| Variabel                      | Keterangan                                    |
-| ----------------------------- | --------------------------------------------- |
-| `APP_URL`                     | URL base API (contoh `http://127.0.0.1:8000`) |
-| `DB_CONNECTION` & kawan-kawan | Kredensial database                           |
-| `SANCTUM_STATEFUL_DOMAINS`    | Domain client jika perlu SPA                  |
-| `QUEUE_CONNECTION`            | Default `database`                            |
-| `GEMINI_API_KEY`              | Jika ingin melibatkan AI service tambahan     |
-| `MIDTRANS_SERVER_KEY`         | Placeholder untuk integrasi pembayaran        |
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=gerobaks
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-### 3. Migrasi & Seeder
+5. **Run migrations and seeders**
 
 ```bash
 php artisan migrate --seed
 ```
 
-Seeder akan membuat:
-
--   1 admin, 3 petugas, dan 5 end-user dengan kredensial demo
--   Layanan pickup, jadwal bulanan, order aktif & historis
--   Ledger saldo, riwayat pembayaran, notifikasi, dan chat dummy
-
-### 4. Menjalankan Server
+6. **Start development server**
 
 ```bash
 php artisan serve
 ```
 
-Server akan berjalan pada `http://127.0.0.1:8000`. Sesuaikan `API_BASE_URL` pada aplikasi Flutter menjadi alamat ini atau gunakan `http://10.0.2.2:8000` untuk Android emulator.
+API akan berjalan di `http://127.0.0.1:8000`
 
-### 5. Queue & Scheduler (Opsional)
+---
 
--   Jalankan worker queue: `php artisan queue:work`
--   Jalankan schedule lokal: `php artisan schedule:work`
--   Pastikan cron di production memanggil `php artisan schedule:run` setiap menit
+## 📡 API Endpoints Overview
 
-## 🔐 Alur Autentikasi
+### Authentication
 
-1. Pengguna login dengan email & password menggunakan `POST /api/login`.
-2. API mengembalikan token Sanctum (`plain_text_token`).
-3. Token disimpan di secure storage Flutter dan dikirim via header `Authorization: Bearer {token}` pada setiap request berikutnya.
-4. `POST /api/logout` akan mencabut token aktif.
+-   `POST /api/register` - Register new user
+-   `POST /api/login` - Login and get token
+-   `GET /api/auth/me` - Get current user
+-   `POST /api/auth/logout` - Logout
 
-Role tersedia:
+### Schedules
 
--   `end_user`
--   `mitra`
--   `admin`
+-   `GET /api/schedules` - Get all schedules
+-   `POST /api/schedules` - Create schedule (mitra/admin)
+-   `POST /api/schedules/mobile` - Create schedule (end_user)
+-   `PATCH /api/schedules/{id}` - Update schedule
+-   `POST /api/schedules/{id}/complete` - Complete schedule
+-   `POST /api/schedules/{id}/cancel` - Cancel schedule
 
-Gunakan header `X-Role` jika diperlukan untuk endpoint tertentu (lihat middleware `EnsureRole`).
+### Tracking
+
+-   `GET /api/tracking` - Get tracking data
+-   `POST /api/tracking` - Create tracking point
+-   `GET /api/tracking/schedule/{id}` - Get tracking by schedule
+
+### Orders, Payments, Balance, Ratings, and more...
+
+📚 **See full documentation**: [API_DOCUMENTATION_COMPLETE.md](./API_DOCUMENTATION_COMPLETE.md)
+
+---
+
+## � Demo Credentials
+
+### End User (Pelanggan)
+
+```
+Email: daffa@gmail.com
+Password: password123
+Role: end_user
+```
+
+### Mitra (Driver)
+
+```
+Email: driver.jakarta@gerobaks.com
+Password: mitra123
+Role: mitra
+```
+
+### Admin
+
+```
+Email: admin@gerobaks.com
+Password: admin123
+Role: admin
+```
+
+---
+
+## 📖 Documentation
+
+-   **Complete API Documentation**: [API_DOCUMENTATION_COMPLETE.md](./API_DOCUMENTATION_COMPLETE.md)
+-   **Deployment Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+-   **Database ERD**: [ERD_COMPLIANCE_SUMMARY.md](./ERD_COMPLIANCE_SUMMARY.md)
+-   **API Changelog**: [CHANGELOG.md](./CHANGELOG.md)
+
+---
+
+## 🧪 Testing
+
+### Health Check
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+### Test Login
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "daffa@gmail.com",
+    "password": "password123"
+  }'
+```
+
+### Run Tests
+
+```bash
+php artisan test
+```
+
+---
 
 ## 📡 Ringkasan Endpoint
 

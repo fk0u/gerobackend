@@ -1,0 +1,1629 @@
+openapi: 3.0.3
+info:
+  title: Gerobaks API
+  description: |
+    # 🚛 Gerobaks Waste Management API
+    
+    RESTful API Backend untuk sistem manajemen pengumpulan sampah Gerobaks.
+    
+    ## 🌟 Features
+    - 🔐 Authentication & Authorization (Laravel Sanctum)
+    - 📅 Schedule Management (Mobile & Standard Format)
+    - 📍 Real-time GPS Tracking
+    - 🛒 Order Management
+    - 💰 Payment & Balance System
+    - ⭐ Rating & Reviews
+    - 💬 Chat System
+    - 🔔 Notifications
+    - 📊 Dashboard & Analytics
+    - 📝 Reports & Feedback
+    - 🎯 Subscription Plans
+    - ⚙️ Settings Management
+    - 👨‍💼 Admin Management
+    
+    ## 📖 Repository
+    - **GitHub**: [https://github.com/fk0u/gerobackend](https://github.com/fk0u/gerobackend)
+    - **Developer**: [@fk0u](https://github.com/fk0u)
+    
+    ## 🔐 Authentication
+    API menggunakan **Laravel Sanctum** untuk autentikasi.
+    
+    **Flow:**
+    1. POST /api/login → Get token
+    2. Use token in header: `Authorization: Bearer {token}`
+    3. POST /api/auth/logout → Revoke token
+    
+  version: 1.0.0
+  contact:
+    name: fk0u
+    url: https://github.com/fk0u
+    email: support@gerobaks.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://gerobaks.dumeg.com/api
+    description: Production Server
+  - url: https://staging-gerobaks.dumeg.com/api
+    description: Staging Server
+  - url: http://127.0.0.1:8000/api
+    description: Local Development
+
+tags:
+  - name: Health
+    description: Health check & monitoring
+  - name: Authentication
+    description: Login, register, logout
+  - name: User Management
+    description: Profile & password management
+  - name: Schedules
+    description: Pickup schedule management
+  - name: Tracking
+    description: GPS tracking
+  - name: Services
+    description: Service catalog
+  - name: Orders
+    description: Order management
+  - name: Payments
+    description: Payment processing
+  - name: Balance
+    description: Wallet & balance
+  - name: Ratings
+    description: Ratings & reviews
+  - name: Notifications
+    description: Push notifications
+  - name: Chat
+    description: Messaging
+  - name: Feedback
+    description: User feedback
+  - name: Subscriptions
+    description: Subscription plans
+  - name: Dashboard
+    description: Analytics & stats
+  - name: Reports
+    description: Reporting system
+  - name: Admin
+    description: Admin operations
+  - name: Settings
+    description: App settings
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Login untuk mendapatkan token:
+        ```
+        Authorization: Bearer YOUR_TOKEN_HERE
+        ```
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [end_user, mitra, admin]
+        phone:
+          type: string
+        address:
+          type: string
+        balance:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        mitra_id:
+          type: integer
+        service_type:
+          type: string
+        pickup_address:
+          type: string
+        pickup_latitude:
+          type: number
+        pickup_longitude:
+          type: number
+        scheduled_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, confirmed, in_progress, completed, cancelled]
+        payment_method:
+          type: string
+        price:
+          type: number
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health Check
+      description: Check if API is running
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /ping:
+    get:
+      tags: [Health]
+      summary: Ping Server
+      description: Get server info with timestamp
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: Gerobaks API is running
+                  timestamp:
+                    type: string
+                  environment:
+                    type: string
+
+  /register:
+    post:
+      tags: [Authentication]
+      summary: Register New User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation, role]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+                password_confirmation:
+                  type: string
+                phone:
+                  type: string
+                role:
+                  type: string
+                  enum: [end_user, mitra, admin]
+      responses:
+        '201':
+          description: User registered
+        '422':
+          description: Validation error
+
+  /login:
+    post:
+      tags: [Authentication]
+      summary: Login User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: daffa@gmail.com
+                password:
+                  type: string
+                  example: password123
+            examples:
+              end_user:
+                summary: End User Login
+                value:
+                  email: daffa@gmail.com
+                  password: password123
+              mitra:
+                summary: Mitra Login
+                value:
+                  email: mitra@gerobaks.com
+                  password: password123
+              admin:
+                summary: Admin Login
+                value:
+                  email: admin@gerobaks.com
+                  password: password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      token:
+                        type: string
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get Current User
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthenticated
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+
+  /user/update-profile:
+    post:
+      tags: [User Management]
+      summary: Update Profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+
+  /user/change-password:
+    post:
+      tags: [User Management]
+      summary: Change Password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password, new_password_confirmation]
+              properties:
+                current_password:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+                new_password_confirmation:
+                  type: string
+      responses:
+        '200':
+          description: Password changed
+
+  /user/upload-profile-image:
+    post:
+      tags: [User Management]
+      summary: Upload Profile Image
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image uploaded
+
+  /schedules:
+    get:
+      tags: [Schedules]
+      summary: Get All Schedules
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, in_progress, completed, cancelled]
+        - name: mitra_id
+          in: query
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: service_type
+          in: query
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Schedules list
+
+    post:
+      tags: [Schedules]
+      summary: Create Schedule (Standard)
+      description: For mitra/admin role
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_type, pickup_address, pickup_latitude, pickup_longitude, scheduled_at]
+              properties:
+                service_type:
+                  type: string
+                pickup_address:
+                  type: string
+                pickup_latitude:
+                  type: number
+                pickup_longitude:
+                  type: number
+                scheduled_at:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+                payment_method:
+                  type: string
+                price:
+                  type: number
+      responses:
+        '201':
+          description: Schedule created
+        '403':
+          description: Forbidden (requires mitra/admin role)
+
+  /schedules/mobile:
+    post:
+      tags: [Schedules]
+      summary: Create Schedule (Mobile Format)
+      description: |
+        **For end_user role** - Format khusus mobile app dengan field bahasa Indonesia
+        
+        Jenis Layanan:
+        - `pickup_sampah_organik` - Sampah Organik
+        - `pickup_sampah_anorganik` - Sampah Anorganik
+        - `pickup_sampah_daur_ulang` - Sampah Daur Ulang
+        - `pickup_sampah_b3` - Sampah B3
+        - `pickup_sampah_campuran` - Sampah Campuran
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alamat, tanggal, waktu, koordinat, jenis_layanan]
+              properties:
+                alamat:
+                  type: string
+                  description: Alamat lengkap pickup
+                  example: Jl. Merdeka No. 123, Jakarta Pusat
+                tanggal:
+                  type: string
+                  format: date
+                  description: Format YYYY-MM-DD
+                  example: "2025-11-01"
+                waktu:
+                  type: string
+                  description: Format HH:mm
+                  example: "08:00"
+                catatan:
+                  type: string
+                  description: Catatan tambahan
+                koordinat:
+                  type: object
+                  required: [lat, lng]
+                  properties:
+                    lat:
+                      type: number
+                      format: float
+                      example: -6.200000
+                    lng:
+                      type: number
+                      format: float
+                      example: 106.816667
+                jenis_layanan:
+                  type: string
+                  enum: [pickup_sampah_organik, pickup_sampah_anorganik, pickup_sampah_daur_ulang, pickup_sampah_b3, pickup_sampah_campuran]
+                  example: pickup_sampah_organik
+                metode_pembayaran:
+                  type: string
+                  enum: [cash, transfer, wallet]
+                  example: cash
+      responses:
+        '201':
+          description: Jadwal berhasil dibuat
+        '422':
+          description: Validation error
+        '403':
+          description: Forbidden (requires end_user role)
+
+  /schedules/{id}:
+    get:
+      tags: [Schedules]
+      summary: Get Schedule Detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Schedule detail
+
+    patch:
+      tags: [Schedules]
+      summary: Update Schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                mitra_id:
+                  type: integer
+                price:
+                  type: number
+      responses:
+        '200':
+          description: Schedule updated
+
+  /schedules/{id}/complete:
+    post:
+      tags: [Schedules]
+      summary: Mark Schedule as Complete
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                completion_notes:
+                  type: string
+                actual_duration:
+                  type: integer
+      responses:
+        '200':
+          description: Schedule completed
+
+  /schedules/{id}/cancel:
+    post:
+      tags: [Schedules]
+      summary: Cancel Schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cancellation_reason]
+              properties:
+                cancellation_reason:
+                  type: string
+      responses:
+        '200':
+          description: Schedule cancelled
+
+  /tracking:
+    get:
+      tags: [Tracking]
+      summary: Get Tracking Data
+      parameters:
+        - name: schedule_id
+          in: query
+          schema:
+            type: integer
+        - name: mitra_id
+          in: query
+          schema:
+            type: integer
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Tracking data
+
+    post:
+      tags: [Tracking]
+      summary: Record GPS Point
+      description: Mitra only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schedule_id, latitude, longitude]
+              properties:
+                schedule_id:
+                  type: integer
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                speed:
+                  type: number
+                bearing:
+                  type: number
+                accuracy:
+                  type: number
+      responses:
+        '201':
+          description: Tracking point recorded
+
+  /tracking/schedule/{scheduleId}:
+    get:
+      tags: [Tracking]
+      summary: Get Tracking History by Schedule
+      parameters:
+        - name: scheduleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tracking history
+
+  /services:
+    get:
+      tags: [Services]
+      summary: Get All Services
+      responses:
+        '200':
+          description: Services list
+
+    post:
+      tags: [Services]
+      summary: Create Service
+      description: Admin only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                category:
+                  type: string
+      responses:
+        '201':
+          description: Service created
+
+  /services/{id}:
+    patch:
+      tags: [Services]
+      summary: Update Service
+      description: Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+      responses:
+        '200':
+          description: Service updated
+
+  /orders:
+    get:
+      tags: [Orders]
+      summary: Get Orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Orders list
+
+    post:
+      tags: [Orders]
+      summary: Create Order
+      description: End user only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service_id:
+                  type: integer
+                quantity:
+                  type: integer
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Order created
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get Order Detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Order detail
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel Order
+      description: End user only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Order cancelled
+
+  /orders/{id}/assign:
+    patch:
+      tags: [Orders]
+      summary: Assign Order to Mitra
+      description: Mitra only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mitra_id:
+                  type: integer
+      responses:
+        '200':
+          description: Order assigned
+
+  /orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Update Order Status
+      description: Mitra/Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, processing, completed, cancelled]
+      responses:
+        '200':
+          description: Status updated
+
+  /payments:
+    get:
+      tags: [Payments]
+      summary: Get Payments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payments list
+
+    post:
+      tags: [Payments]
+      summary: Create Payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: integer
+                amount:
+                  type: number
+                method:
+                  type: string
+                  enum: [cash, transfer, ewallet, card]
+      responses:
+        '201':
+          description: Payment created
+
+  /payments/{id}:
+    patch:
+      tags: [Payments]
+      summary: Update Payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Payment updated
+
+  /payments/{id}/mark-paid:
+    post:
+      tags: [Payments]
+      summary: Mark as Paid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked as paid
+
+  /balance/ledger:
+    get:
+      tags: [Balance]
+      summary: Get Balance Ledger
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Balance ledger
+
+  /balance/summary:
+    get:
+      tags: [Balance]
+      summary: Get Balance Summary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Balance summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_balance:
+                    type: number
+                  total_topup:
+                    type: number
+                  total_spent:
+                    type: number
+
+  /balance/topup:
+    post:
+      tags: [Balance]
+      summary: Top Up Balance
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, method]
+              properties:
+                amount:
+                  type: number
+                  example: 50000
+                method:
+                  type: string
+                  enum: [transfer, ewallet, card]
+                reference:
+                  type: string
+      responses:
+        '201':
+          description: Top-up successful
+
+  /balance/withdraw:
+    post:
+      tags: [Balance]
+      summary: Withdraw Balance
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: number
+                bank_account:
+                  type: string
+      responses:
+        '201':
+          description: Withdrawal successful
+
+  /ratings:
+    get:
+      tags: [Ratings]
+      summary: Get Ratings
+      parameters:
+        - name: mitra_id
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ratings list
+
+    post:
+      tags: [Ratings]
+      summary: Submit Rating
+      description: End user only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schedule_id, mitra_id, rating]
+              properties:
+                schedule_id:
+                  type: integer
+                mitra_id:
+                  type: integer
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Rating submitted
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Get Notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications list
+
+    post:
+      tags: [Notifications]
+      summary: Send Notification
+      description: Admin only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+                user_id:
+                  type: integer
+      responses:
+        '201':
+          description: Notification sent
+
+  /notifications/mark-read:
+    post:
+      tags: [Notifications]
+      summary: Mark as Read
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Marked as read
+
+  /chats:
+    get:
+      tags: [Chat]
+      summary: Get Chats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Chats list
+
+    post:
+      tags: [Chat]
+      summary: Send Message
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipient_id, message]
+              properties:
+                recipient_id:
+                  type: integer
+                message:
+                  type: string
+      responses:
+        '201':
+          description: Message sent
+
+  /feedback:
+    get:
+      tags: [Feedback]
+      summary: Get Feedback
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Feedback list
+
+    post:
+      tags: [Feedback]
+      summary: Submit Feedback
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, message]
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+                category:
+                  type: string
+      responses:
+        '201':
+          description: Feedback submitted
+
+  /subscription/plans:
+    get:
+      tags: [Subscriptions]
+      summary: Get Subscription Plans
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Plans list
+
+  /subscription/plans/{plan}:
+    get:
+      tags: [Subscriptions]
+      summary: Get Plan Detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plan
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Plan detail
+
+  /subscription/current:
+    get:
+      tags: [Subscriptions]
+      summary: Get Current Subscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current subscription
+
+  /subscription/subscribe:
+    post:
+      tags: [Subscriptions]
+      summary: Subscribe to Plan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_id]
+              properties:
+                plan_id:
+                  type: integer
+      responses:
+        '201':
+          description: Subscribed
+
+  /subscription/{subscription}/activate:
+    post:
+      tags: [Subscriptions]
+      summary: Activate Subscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: subscription
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Activated
+
+  /subscription/{subscription}/cancel:
+    post:
+      tags: [Subscriptions]
+      summary: Cancel Subscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: subscription
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cancelled
+
+  /subscription/history:
+    get:
+      tags: [Subscriptions]
+      summary: Get Subscription History
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: History list
+
+  /dashboard/mitra/{id}:
+    get:
+      tags: [Dashboard]
+      summary: Get Mitra Dashboard
+      description: Mitra/Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Mitra dashboard data
+
+  /dashboard/user/{id}:
+    get:
+      tags: [Dashboard]
+      summary: Get User Dashboard
+      description: End user/Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User dashboard data
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: Get Reports
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reports list
+
+    post:
+      tags: [Reports]
+      summary: Create Report
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                type:
+                  type: string
+      responses:
+        '201':
+          description: Report created
+
+  /reports/{id}:
+    get:
+      tags: [Reports]
+      summary: Get Report Detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Report detail
+
+    patch:
+      tags: [Reports]
+      summary: Update Report
+      description: Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                response:
+                  type: string
+      responses:
+        '200':
+          description: Report updated
+
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Get Settings
+      responses:
+        '200':
+          description: Settings
+
+    patch:
+      tags: [Settings]
+      summary: Update Settings
+      description: Admin only
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Settings updated
+
+  /settings/api-config:
+    get:
+      tags: [Settings]
+      summary: Get API Config
+      responses:
+        '200':
+          description: API configuration
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Get System Statistics
+      description: Admin only
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_users:
+                    type: integer
+                  total_mitra:
+                    type: integer
+                  total_schedules:
+                    type: integer
+                  total_revenue:
+                    type: number
+                  active_schedules:
+                    type: integer
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Get All Users
+      description: Admin only
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Users list
+
+    post:
+      tags: [Admin]
+      summary: Create User
+      description: Admin only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: User created
+
+  /admin/users/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update User
+      description: Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '200':
+          description: User updated
+
+    delete:
+      tags: [Admin]
+      summary: Delete User
+      description: Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted
+
+  /admin/logs:
+    get:
+      tags: [Admin]
+      summary: Get System Logs
+      description: Admin only
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System logs
+
+  /admin/export:
+    get:
+      tags: [Admin]
+      summary: Export Data
+      description: Admin only
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [users, schedules, orders, payments]
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, excel, pdf]
+      responses:
+        '200':
+          description: Export file
+
+  /admin/notifications:
+    post:
+      tags: [Admin]
+      summary: Send Broadcast Notification
+      description: Admin only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, message]
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+                target:
+                  type: string
+                  enum: [all, end_user, mitra]
+      responses:
+        '201':
+          description: Notification sent
+
+  /admin/health:
+    get:
+      tags: [Admin]
+      summary: Get System Health
+      description: Admin only
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  database:
+                    type: string
+                  storage:
+                    type: string
+                  cache:
+                    type: string
+                  queue:
+                    type: string

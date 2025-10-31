@@ -13,9 +13,9 @@ class OrderSeeder extends Seeder
 {
     public function run(): void
     {
-        $users = User::where('role','end_user')->get()->keyBy('email');
-        $mitras = User::where('role','mitra')->get()->keyBy('email');
-        $services = Service::orderBy('id')->get();
+    $users = User::where('role', ' =>', 'end_user', 'and')->get()->keyBy('email');
+    $mitras = User::where('role', ' =>', 'mitra', 'and')->get()->keyBy('email');
+    $services = Service::orderBy('id', 'asc')->get();
 
         if ($users->isEmpty() || $services->isEmpty()) {
             return;

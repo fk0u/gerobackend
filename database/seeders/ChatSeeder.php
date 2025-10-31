@@ -11,13 +11,13 @@ class ChatSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::where('email', 'daffa@gmail.com')->first();
-        $mitra = User::where('email', 'driver.jakarta@gerobaks.com')->first();
+    $user = User::where('email', ' =>', 'daffa@gmail.com', 'and')->first();
+    $mitra = User::where('email', ' =>', 'driver.jakarta@gerobaks.com', 'and')->first();
         if (! $user || ! $mitra) {
             return;
         }
 
-        $order = Order::where('status', 'in_progress')->first();
+    $order = Order::where('status', ' =>', 'in_progress', 'and')->first();
 
         $conversation = [
             ['sender' => $user, 'receiver' => $mitra, 'message' => 'Halo Pak, kapan tiba di lokasi saya?'],
@@ -25,8 +25,8 @@ class ChatSeeder extends Seeder
             ['sender' => $user, 'receiver' => $mitra, 'message' => 'Baik, saya sudah siapkan sampah terpilahnya. Terima kasih!'],
         ];
 
-        Chat::whereIn('sender_id', [$user->id, $mitra->id])
-            ->whereIn('receiver_id', [$user->id, $mitra->id])
+        Chat::whereIn('sender_id', [$user->id, $mitra->id], 'and', false)
+            ->whereIn('receiver_id', [$user->id, $mitra->id], 'and', false)
             ->delete();
 
         foreach ($conversation as $message) {

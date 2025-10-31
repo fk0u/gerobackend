@@ -52,7 +52,7 @@ class DocsController extends Controller
 
     public function openapi(): BinaryFileResponse
     {
-        $path = base_path('docs/openapi.yaml');
+        $path = public_path('openapi.yaml');
         abort_unless(File::exists($path), 404);
 
         return response()->file($path, [
