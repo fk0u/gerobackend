@@ -36,4 +36,48 @@ class ChatController extends Controller
         $chat = Chat::create($data);
         return response()->json(new ChatResource($chat->load(['order', 'sender', 'receiver'])), 201);
     }
+
+    public function show(int $id) {
+        $chat = Chat::with(['order', 'sender', 'receiver'])->findOrFail($id);
+        return response()->json(new ChatResource($chat));
+    }
+
+    public function update(Request $request, int $id) {
+        $chat = Chat::findOrFail($id);
+        
+        // Users can update their own messages
+        if ($chat->sender_id !== request()->user()->id && request()->user()->role !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only update your own messages'
+            ], 403);
+        }
+        
+        $data = $request->validate([
+            'message' => 'sometimes|string',
+            'message_type' => 'sometimes|nullable|string',
+        ]);
+
+        $chat->update($data);
+        return response()->json(new ChatResource($chat->fresh(['order', 'sender', 'receiver'])));
+    }
+
+    public function destroy(int $id) {
+        $chat = Chat::findOrFail($id);
+        
+        // Users can delete their own messages
+        if ($chat->sender_id !== request()->user()->id && request()->user()->role !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only delete your own messages'
+            ], 403);
+        }
+        
+        $chat->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Message deleted successfully'
+        ], 200);
+    }
 }

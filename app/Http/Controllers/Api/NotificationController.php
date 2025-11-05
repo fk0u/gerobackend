@@ -48,4 +48,50 @@ class NotificationController extends Controller
             'updated' => count($ids),
         ]);
     }
+
+    public function show(int $id) {
+        $notification = Notification::with('user')->findOrFail($id);
+        return response()->json(new NotificationResource($notification));
+    }
+
+    public function update(Request $request, int $id) {
+        $notification = Notification::findOrFail($id);
+        
+        // Users can update their own notifications
+        $user = request()->user();
+        if ($notification->user_id && $notification->user_id !== $user->id && $user->role !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only update your own notifications'
+            ], 403);
+        }
+        
+        $data = $request->validate([
+            'is_read' => 'sometimes|boolean',
+            'read_at' => 'sometimes|nullable|date',
+        ]);
+
+        $notification->update($data);
+        return response()->json(new NotificationResource($notification->fresh('user')));
+    }
+
+    public function destroy(int $id) {
+        $notification = Notification::findOrFail($id);
+        
+        // Users can delete their own notifications
+        $user = request()->user();
+        if ($notification->user_id && $notification->user_id !== $user->id && $user->role !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only delete your own notifications'
+            ], 403);
+        }
+        
+        $notification->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Notification deleted successfully'
+        ], 200);
+    }
 }

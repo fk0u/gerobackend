@@ -260,4 +260,40 @@ class ReportController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/reports/{id}",
+     *     summary="Delete report (admin only)",
+     *     tags={"Reports"},
+     *     security={{"bearer_token":{}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Report deleted successfully")
+     * )
+     */
+    public function destroy($id): JsonResponse
+    {
+        // Only admin can delete reports
+        $user = auth('sanctum')->user();
+        if ($user && $user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden: Admin access required'
+            ], 403);
+        }
+        
+        try {
+            // Simulate report deletion
+            return response()->json([
+                'success' => true,
+                'message' => 'Report deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

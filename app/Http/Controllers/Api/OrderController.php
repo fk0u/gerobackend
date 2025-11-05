@@ -123,4 +123,62 @@ class OrderController extends Controller
             ]))
         ]);
     }
+
+    public function update(Request $request, int $id)
+    {
+        $order = Order::findOrFail($id);
+        
+        // Authorization check
+        $user = request()->user();
+        if ($user->role !== 'admin' && $order->user_id !== $user->id && $order->mitra_id !== $user->id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only update your own orders'
+            ], 403);
+        }
+        
+        $data = $request->validate([
+            'service_id' => 'sometimes|nullable|exists:services,id',
+            'address_text' => 'sometimes|string',
+            'latitude' => 'sometimes|numeric|between:-90,90',
+            'longitude' => 'sometimes|numeric|between:-180,180',
+            'notes' => 'sometimes|nullable|string',
+            'status' => 'sometimes|string|in:pending,assigned,in_progress,completed,cancelled',
+        ]);
+
+        $order->update($data);
+        
+        return response()->json(new OrderResource($order->fresh([
+            'user','mitra','service','schedule.assignedUser','payments','ratings'
+        ])));
+    }
+
+    public function destroy(int $id)
+    {
+        $order = Order::findOrFail($id);
+        
+        // Authorization: User can delete own orders, admin can delete any
+        $user = request()->user();
+        if ($user->role !== 'admin' && $order->user_id !== $user->id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only delete your own orders'
+            ], 403);
+        }
+        
+        // Cannot delete orders that are in progress or completed
+        if (in_array($order->status, ['in_progress', 'completed', 'delivered'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cannot delete order in current status'
+            ], 422);
+        }
+        
+        $order->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Order deleted successfully'
+        ], 200);
+    }
 }

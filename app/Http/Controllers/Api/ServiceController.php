@@ -45,4 +45,29 @@ class ServiceController extends Controller
         $service->update($data);
         return response()->json(new ServiceResource($service));
     }
+
+    public function show(int $id) {
+        $service = Service::findOrFail($id);
+        return response()->json(new ServiceResource($service));
+    }
+
+    public function destroy(int $id) {
+        $service = Service::findOrFail($id);
+        
+        // Check if service is being used in any orders
+        $ordersCount = \App\Models\Order::where('service_id', $id)->count();
+        if ($ordersCount > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cannot delete service with existing orders. Please deactivate instead.'
+            ], 422);
+        }
+        
+        $service->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Service deleted successfully'
+        ], 200);
+    }
 }

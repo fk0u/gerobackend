@@ -49,4 +49,37 @@ class PaymentController extends Controller
         $service->markPaid($payment);
         return response()->json(new PaymentResource($payment->fresh(['order','user'])));
     }
+
+    public function show(int $id) {
+        $payment = Payment::with(['order','user'])->findOrFail($id);
+        return response()->json(new PaymentResource($payment));
+    }
+
+    public function destroy(int $id) {
+        // Only admin can delete payments
+        $user = request()->user();
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: Admin access required'
+            ], 403);
+        }
+        
+        $payment = Payment::findOrFail($id);
+        
+        // Cannot delete paid/completed payments
+        if (in_array($payment->status, ['paid', 'completed', 'success'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cannot delete completed payments'
+            ], 422);
+        }
+        
+        $payment->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Payment record deleted successfully'
+        ], 200);
+    }
 }

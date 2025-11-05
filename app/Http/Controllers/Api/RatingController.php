@@ -68,4 +68,48 @@ class RatingController extends Controller
 
         return response()->json(new RatingResource($rating->load(['order','user','mitra'])), 201);
     }
+
+    public function show(int $id) {
+        $rating = Rating::with(['order','user','mitra'])->findOrFail($id);
+        return response()->json(new RatingResource($rating));
+    }
+
+    public function update(Request $request, int $id) {
+        $rating = Rating::findOrFail($id);
+        
+        // Only the user who created the rating can update it
+        if ($rating->user_id !== request()->user()->id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only update your own ratings'
+            ], 403);
+        }
+        
+        $data = $request->validate([
+            'score' => 'sometimes|integer|min:1|max:5',
+            'comment' => 'sometimes|nullable|string',
+        ]);
+
+        $rating->update($data);
+        return response()->json(new RatingResource($rating->fresh(['order','user','mitra'])));
+    }
+
+    public function destroy(int $id) {
+        $rating = Rating::findOrFail($id);
+        
+        // Only the user who created the rating can delete it
+        if ($rating->user_id !== request()->user()->id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: You can only delete your own ratings'
+            ], 403);
+        }
+        
+        $rating->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Rating deleted successfully'
+        ], 200);
+    }
 }

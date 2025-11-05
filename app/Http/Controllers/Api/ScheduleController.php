@@ -244,4 +244,24 @@ class ScheduleController extends Controller
             'Schedule cancelled successfully'
         );
     }
+
+    public function destroy(int $id)
+    {
+        $schedule = Schedule::findOrFail($id);
+        
+        // Authorization: Only mitra who owns it or admin can delete
+        $user = auth()->user();
+        if ($user->role !== 'admin' && $schedule->mitra_id !== $user->id) {
+            return $this->errorResponse('Forbidden: You can only delete your own schedules', 403);
+        }
+        
+        // Check if schedule can be deleted (business logic)
+        if (in_array($schedule->status, ['in_progress', 'completed'])) {
+            return $this->errorResponse('Cannot delete schedule in current status. Only pending or cancelled schedules can be deleted.', 422);
+        }
+        
+        $schedule->delete();
+        
+        return $this->successResponse(null, 'Schedule deleted successfully', 200);
+    }
 }

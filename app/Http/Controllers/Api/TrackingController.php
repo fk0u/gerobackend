@@ -65,4 +65,46 @@ class TrackingController extends Controller
 
         return TrackingResource::collection($history);
     }
+
+    public function show(int $id)
+    {
+        $tracking = Tracking::with('schedule.assignedUser')->findOrFail($id);
+        return response()->json(new TrackingResource($tracking));
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $tracking = Tracking::findOrFail($id);
+        
+        $data = $request->validate([
+            'latitude' => 'sometimes|numeric|between:-90,90',
+            'longitude' => 'sometimes|numeric|between:-180,180',
+            'speed' => 'sometimes|nullable|numeric',
+            'heading' => 'sometimes|nullable|numeric',
+            'recorded_at' => 'sometimes|nullable|date',
+        ]);
+
+        $tracking->update($data);
+        return response()->json(new TrackingResource($tracking->load('schedule.assignedUser')));
+    }
+
+    public function destroy(int $id)
+    {
+        // Only admin can delete tracking records
+        $user = request()->user();
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden: Admin access required'
+            ], 403);
+        }
+        
+        $tracking = Tracking::findOrFail($id);
+        $tracking->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tracking record deleted successfully'
+        ], 200);
+    }
 }

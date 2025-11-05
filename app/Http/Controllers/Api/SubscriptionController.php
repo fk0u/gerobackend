@@ -181,4 +181,44 @@ class SubscriptionController extends Controller
             new SubscriptionResource($subscription)
         );
     }
+
+    /**
+     * Delete subscription (admin or owner only)
+     * Note: Active subscriptions should be cancelled first before deletion
+     */
+    public function destroy(int $id)
+    {
+        $user = Auth::user();
+        
+        // Admin can delete any subscription
+        if ($user->role === 'admin') {
+            $subscription = Subscription::findOrFail($id);
+        } else {
+            // Regular users can only delete their own subscriptions
+            $subscription = Subscription::where('user_id', ' =>', $user->id, 'and')
+                ->findOrFail($id);
+        }
+
+        // Prevent deletion of active subscriptions
+        if ($subscription->status === 'active' && $subscription->ends_at > now()) {
+            return $this->errorResponse(
+                'Cannot delete active subscription. Please cancel it first.',
+                422
+            );
+        }
+
+        try {
+            $subscription->delete();
+            
+            return $this->successResponse(
+                null,
+                'Subscription deleted successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Failed to delete subscription: ' . $e->getMessage(),
+                500
+            );
+        }
+    }
 }
