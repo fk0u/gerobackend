@@ -12,13 +12,13 @@ class NotificationController extends Controller
     public function index(Request $request) {
         $q = Notification::query()->with('user');
         if ($request->filled('user_id')) {
-            $q->where('user_id', ' =>', $request->integer('user_id'), 'and');
+            $q->where('user_id', $request->integer('user_id'));
         }
         if ($request->filled('role_scope')) {
-            $q->where('role_scope', ' =>', (string) $request->string('role_scope'), 'and');
+            $q->where('role_scope', (string) $request->string('role_scope'));
         }
         if ($request->boolean('unread_only')) {
-            $q->where('is_read', ' =>', false, 'and');
+            $q->where('is_read', false);
         }
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
         $page = $q->orderByDesc('created_at')->paginate($perPage);

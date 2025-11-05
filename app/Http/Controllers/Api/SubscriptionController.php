@@ -21,7 +21,7 @@ class SubscriptionController extends Controller
         $user = Auth::user();
         
         $subscriptions = Subscription::with(['subscriptionPlan'])
-            ->where('user_id', ' =>', $user->id, 'and')
+            ->where('user_id', $user->id)
             ->latest()
             ->paginate(20);
 
@@ -41,7 +41,7 @@ class SubscriptionController extends Controller
         $user = Auth::user();
         
         $subscription = Subscription::with(['subscriptionPlan'])
-            ->where('user_id', ' =>', $user->id, 'and')
+            ->where('user_id', $user->id)
             ->findOrFail($id);
 
         return $this->successResponse(
@@ -61,8 +61,8 @@ class SubscriptionController extends Controller
         $plan = SubscriptionPlan::findOrFail($data['subscription_plan_id']);
 
         // Check if user already has active subscription
-        $activeSubscription = Subscription::where('user_id', ' =>', $user->id, 'and')
-            ->where('status', ' =>', 'active', 'and')
+        $activeSubscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
             ->where('ends_at', '>', now(), 'and')
             ->first();
 
@@ -115,7 +115,7 @@ class SubscriptionController extends Controller
     {
         $user = Auth::user();
         
-        $subscription = Subscription::where('user_id', ' =>', $user->id, 'and')
+        $subscription = Subscription::where('user_id', $user->id)
             ->findOrFail($id);
 
         if ($subscription->status !== 'pending') {
@@ -137,7 +137,7 @@ class SubscriptionController extends Controller
     {
         $user = Auth::user();
         
-        $subscription = Subscription::where('user_id', ' =>', $user->id, 'and')
+        $subscription = Subscription::where('user_id', $user->id)
             ->findOrFail($id);
 
         if (!in_array($subscription->status, ['active', 'pending'])) {
@@ -168,8 +168,8 @@ class SubscriptionController extends Controller
         $user = Auth::user();
         
         $subscription = Subscription::with(['subscriptionPlan'])
-            ->where('user_id', ' =>', $user->id, 'and')
-            ->where('status', ' =>', 'active', 'and')
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
             ->where('ends_at', '>', now(), 'and')
             ->first();
 
@@ -195,7 +195,7 @@ class SubscriptionController extends Controller
             $subscription = Subscription::findOrFail($id);
         } else {
             // Regular users can only delete their own subscriptions
-            $subscription = Subscription::where('user_id', ' =>', $user->id, 'and')
+            $subscription = Subscription::where('user_id', $user->id)
                 ->findOrFail($id);
         }
 

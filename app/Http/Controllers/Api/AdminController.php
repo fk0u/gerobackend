@@ -36,18 +36,18 @@ class AdminController extends Controller
         try {
             // Get various statistics
             $totalUsers = User::count('*');
-            $totalMitra = User::where('role', ' =>', 'mitra', 'and')->count('*');
+            $totalMitra = User::where('role', 'mitra')->count('*');
             $totalOrders = DB::table('orders')->count('*');
             $totalServices = DB::table('services')->count('*');
-            $pendingOrders = DB::table('orders')->where('status', ' =>', 'pending', 'and')->count('*');
-            $completedOrders = DB::table('orders')->where('status', ' =>', 'completed', 'and')->count('*');
-            $activeUsers = User::where('status', ' =>', 'active', 'and')->count('*');
-            $activeMitra = User::where('role', ' =>', 'mitra', 'and')->where('status', ' =>', 'active', 'and')->count('*');
+            $pendingOrders = DB::table('orders')->where('status', 'pending')->count('*');
+            $completedOrders = DB::table('orders')->where('status', 'completed')->count('*');
+            $activeUsers = User::where('status', 'active')->count('*');
+            $activeMitra = User::where('role', 'mitra')->where('status', 'active')->count('*');
 
             // Revenue calculations
-            $totalRevenue = DB::table('payments')->where('status', ' =>', 'paid', 'and')->sum('amount');
+            $totalRevenue = DB::table('payments')->where('status', 'paid')->sum('amount');
             $monthlyRevenue = DB::table('payments')
-                ->where('status', ' =>', 'paid', 'and')
+                ->where('status', 'paid')
                 ->whereMonth('created_at', ' =>', now()->month, 'and')
                 ->sum('amount');
 
@@ -126,11 +126,11 @@ class AdminController extends Controller
             
             // Apply filters
             if ($request->has('role')) {
-                $query->where('role', ' =>', $request->role, 'and');
+                $query->where('role', $request->role);
             }
             
             if ($request->has('status')) {
-                $query->where('status', ' =>', $request->status, 'and');
+                $query->where('status', $request->status);
             }
             
             if ($request->has('search')) {

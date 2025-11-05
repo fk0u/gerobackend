@@ -13,17 +13,17 @@ class DashboardController extends Controller
     public function mitra(int $mitraId)
     {
         $today = Carbon::today();
-        $active = Order::where('mitra_id', ' =>', $mitraId, 'and')
+        $active = Order::where('mitra_id', $mitraId)
             ->whereNotIn('status', ['completed','cancelled'], 'and', false)
             ->count('*');
-        $todayCompleted = Order::where('mitra_id', ' =>', $mitraId, 'and')
+        $todayCompleted = Order::where('mitra_id', $mitraId)
             ->whereDate('completed_at', ' =>', $today, 'and')
             ->count('*');
-        $points = BalanceEntry::where('user_id', ' =>', $mitraId, 'and')
-            ->where('direction', ' =>', 'credit', 'and')
+        $points = BalanceEntry::where('user_id', $mitraId)
+            ->where('direction', 'credit')
             ->sum('amount');
-        $unread = Notification::where('user_id', ' =>', $mitraId, 'and')
-            ->where('is_read', ' =>', false, 'and')
+        $unread = Notification::where('user_id', $mitraId)
+            ->where('is_read', false)
             ->count('*');
         return response()->json([
             'active_orders_count' => $active,
@@ -35,13 +35,13 @@ class DashboardController extends Controller
 
     public function user(int $userId)
     {
-        $active = Order::where('user_id', ' =>', $userId, 'and')
+        $active = Order::where('user_id', $userId)
             ->whereNotIn('status', ['completed','cancelled'], 'and', false)
             ->count('*');
-        $points = BalanceEntry::where('user_id', ' =>', $userId, 'and')
+        $points = BalanceEntry::where('user_id', $userId)
             ->sum('amount');
-        $unread = Notification::where('user_id', ' =>', $userId, 'and')
-            ->where('is_read', ' =>', false, 'and')
+        $unread = Notification::where('user_id', $userId)
+            ->where('is_read', false)
             ->count('*');
         return response()->json([
             'active_requests' => $active,

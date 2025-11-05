@@ -18,12 +18,12 @@ class SubscriptionPlanController extends Controller
         
         // Filter by active status
         if ($request->filled('is_active')) {
-            $query->where('is_active', ' =>', $request->boolean('is_active'), 'and');
+            $query->where('is_active', $request->boolean('is_active'));
         }
         
         // Default to only active plans for public API
         if (!$request->filled('is_active')) {
-            $query->where('is_active', ' =>', true, 'and');
+            $query->where('is_active', true);
         }
 
         // Order by price since sort_order column doesn't exist in database

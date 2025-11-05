@@ -21,9 +21,9 @@ class BalanceController extends Controller
         ]);
 
         $perPage = min(max($request->integer('per_page', 50), 1), 200);
-        $query = BalanceEntry::with('user')->where('user_id', ' =>', $request->integer('user_id'), 'and');
+        $query = BalanceEntry::with('user')->where('user_id', $request->integer('user_id'));
         if ($request->filled('direction')) {
-            $query->where('direction', ' =>', (string) $request->string('direction'), 'and');
+            $query->where('direction', (string) $request->string('direction'));
         }
         $page = $query->orderByDesc('created_at')->paginate($perPage);
         $page->getCollection()->transform(fn($entry) => new BalanceEntryResource($entry));
@@ -33,16 +33,16 @@ class BalanceController extends Controller
     public function summary(Request $request) {
         $request->validate(['user_id' => 'required|exists:users,id']);
         $userId = $request->integer('user_id');
-        $credit = BalanceEntry::where('user_id', ' =>', $userId, 'and')
-            ->where('direction', ' =>', 'credit', 'and')
+        $credit = BalanceEntry::where('user_id', $userId)
+            ->where('direction', 'credit')
             ->sum('amount');
-        $debit = BalanceEntry::where('user_id', ' =>', $userId, 'and')
-            ->where('direction', ' =>', 'debit', 'and')
+        $debit = BalanceEntry::where('user_id', $userId)
+            ->where('direction', 'debit')
             ->sum('amount');
         $balance = $credit - $debit;
         $recentEntries = BalanceEntryResource::collection(
             BalanceEntry::with('user')
-                ->where('user_id', ' =>', $userId, 'and')
+                ->where('user_id', $userId)
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get()
@@ -108,11 +108,11 @@ class BalanceController extends Controller
         $user = Auth::user();
         
         // Check current balance
-        $credit = BalanceEntry::where('user_id', ' =>', $user->id, 'and')
-            ->where('direction', ' =>', 'credit', 'and')
+        $credit = BalanceEntry::where('user_id', $user->id)
+            ->where('direction', 'credit')
             ->sum('amount');
-        $debit = BalanceEntry::where('user_id', ' =>', $user->id, 'and')
-            ->where('direction', ' =>', 'debit', 'and')
+        $debit = BalanceEntry::where('user_id', $user->id)
+            ->where('direction', 'debit')
             ->sum('amount');
         $currentBalance = $credit - $debit;
         
