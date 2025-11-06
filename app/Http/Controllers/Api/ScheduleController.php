@@ -92,12 +92,19 @@ class ScheduleController extends Controller
             'additional_wastes.*.waste_type' => 'required|string|max:50',
             'additional_wastes.*.estimated_weight' => 'nullable|numeric|min:0',
             'additional_wastes.*.notes' => 'nullable|string|max:500',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
-        // Auto-assign user if authenticated
-        $data['user_id'] = $request->user()->id;
+        // Allow privileged roles to attach a customer; otherwise default to the requester
+        $data['user_id'] = $data['user_id'] ?? $request->user()->id;
         $data['status'] = 'pending';
         $data['frequency'] = $data['frequency'] ?? 'once';
+
+        // Legacy columns still require values in schema, so mirror modern fields to avoid 500s
+        $data['title'] = $data['service_type'] ?? 'Pickup Service';
+        $data['description'] = $data['notes'] ?? $data['pickup_address'];
+        $data['latitude'] = $data['pickup_latitude'];
+        $data['longitude'] = $data['pickup_longitude'];
 
         // Extract additional wastes
         $additionalWastes = $data['additional_wastes'] ?? [];
@@ -149,6 +156,11 @@ class ScheduleController extends Controller
             'payment_method' => $data['metode_pembayaran'] ?? 'cash',
             'user_id' => $request->user()->id,
             'status' => 'pending',
+            'frequency' => 'once',
+            'title' => $data['jenis_layanan'],
+            'description' => $data['catatan'] ?? $data['alamat'],
+            'latitude' => $data['koordinat']['lat'],
+            'longitude' => $data['koordinat']['lng'],
         ];
 
         $schedule = Schedule::create($backendData);
