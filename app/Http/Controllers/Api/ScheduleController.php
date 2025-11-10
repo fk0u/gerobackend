@@ -7,7 +7,9 @@ use App\Http\Traits\ApiResponseTrait;
 use App\Models\Schedule;
 use App\Http\Resources\ScheduleResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Collection as SupportCollection;
 
 class ScheduleController extends Controller
 {
@@ -175,25 +177,53 @@ class ScheduleController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $schedule = Schedule::findOrFail($id);
+        $schedule = Schedule::with('additionalWastes')->findOrFail($id);
 
         $data = $request->validate([
             'service_type' => 'sometimes|string|max:100',
             'pickup_address' => 'sometimes|string|max:500',
             'pickup_latitude' => 'sometimes|numeric|between:-90,90',
             'pickup_longitude' => 'sometimes|numeric|between:-180,180',
-            'scheduled_at' => 'sometimes|date|after:now',
+            'scheduled_at' => 'sometimes|date|after_or_equal:now',
             'estimated_duration' => 'sometimes|nullable|integer|min:15|max:480',
             'notes' => 'sometimes|nullable|string|max:1000',
             'status' => ['sometimes', Rule::in(['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'])],
             'mitra_id' => 'sometimes|nullable|exists:users,id',
             'payment_method' => ['sometimes', 'nullable', Rule::in(['cash', 'transfer', 'wallet'])],
             'price' => 'sometimes|nullable|numeric|min:0',
+            'frequency' => ['sometimes', 'nullable', Rule::in(['once', 'daily', 'weekly', 'biweekly', 'monthly'])],
+            'waste_type' => 'sometimes|nullable|string|max:50',
+            'estimated_weight' => 'sometimes|nullable|numeric|min:0',
+            'contact_name' => 'sometimes|nullable|string|max:255',
+            'contact_phone' => 'sometimes|nullable|string|max:20',
+            'is_paid' => 'sometimes|boolean',
+            'amount' => 'sometimes|nullable|numeric|min:0',
+            'additional_wastes' => 'sometimes|array',
+            'additional_wastes.*.id' => 'sometimes|integer|exists:additional_wastes,id',
+            'additional_wastes.*.waste_type' => 'nullable|string|max:50',
+            'additional_wastes.*.estimated_weight' => 'nullable|numeric|min:0',
+            'additional_wastes.*.notes' => 'nullable|string|max:500',
+            'additional_wastes.*._delete' => 'sometimes|boolean',
         ]);
 
-        $schedule->update($data);
-        $schedule->load(['user', 'mitra']);
-        
+        $additionalWastes = collect($data['additional_wastes'] ?? []);
+        unset($data['additional_wastes']);
+
+        $payload = $this->mirrorLegacyFields(
+            $this->normalizePayload($data)
+        );
+
+        DB::transaction(function () use ($schedule, $payload, $additionalWastes) {
+            $schedule->fill($payload);
+            $schedule->save();
+
+            if ($additionalWastes->isNotEmpty()) {
+                $this->syncAdditionalWastes($schedule, $additionalWastes);
+            }
+        });
+
+        $schedule->refresh()->load(['user', 'mitra', 'additionalWastes']);
+
         return $this->successResponse(
             new ScheduleResource($schedule),
             'Schedule updated successfully'
@@ -215,11 +245,17 @@ class ScheduleController extends Controller
             'actual_duration' => 'nullable|integer|min:1',
         ]);
         
-        $schedule->update([
+        $notes = $this->appendAuditNote($schedule->notes, 'Completion', $data['completion_notes'] ?? 'Completed');
+
+        $payload = $this->mirrorLegacyFields([
             'status' => 'completed',
-            'notes' => ($schedule->notes ?? '') . '\n\nCompletion: ' . ($data['completion_notes'] ?? 'Completed'),
+            'notes' => $notes,
+            'completion_notes' => $data['completion_notes'] ?? null,
+            'actual_duration' => $data['actual_duration'] ?? null,
             'completed_at' => now(),
         ]);
+
+        $schedule->update($payload);
         
         $schedule->load(['user', 'mitra']);
         
@@ -243,11 +279,16 @@ class ScheduleController extends Controller
             'cancellation_reason' => 'required|string|max:500',
         ]);
         
-        $schedule->update([
+        $notes = $this->appendAuditNote($schedule->notes, 'Cancelled', $data['cancellation_reason']);
+
+        $payload = $this->mirrorLegacyFields([
             'status' => 'cancelled',
-            'notes' => ($schedule->notes ?? '') . '\n\nCancelled: ' . $data['cancellation_reason'],
+            'notes' => $notes,
             'cancelled_at' => now(),
+            'rejection_reason' => $data['cancellation_reason'],
         ]);
+
+        $schedule->update($payload);
         
         $schedule->load(['user', 'mitra']);
         
@@ -257,12 +298,97 @@ class ScheduleController extends Controller
         );
     }
 
-    public function destroy(int $id)
+    private function normalizePayload(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($value)) {
+                $trimmed = trim($value);
+                $data[$key] = $trimmed === '' ? null : $trimmed;
+                continue;
+            }
+
+            if (is_array($value)) {
+                $data[$key] = $this->normalizePayload($value);
+            }
+        }
+
+        return $data;
+    }
+
+    private function mirrorLegacyFields(array $data): array
+    {
+        if (array_key_exists('service_type', $data)) {
+            $data['title'] = $data['service_type'];
+        }
+
+        if (array_key_exists('notes', $data)) {
+            $data['description'] = $data['notes'];
+        }
+
+        if (array_key_exists('pickup_latitude', $data)) {
+            $data['latitude'] = $data['pickup_latitude'];
+        }
+
+        if (array_key_exists('pickup_longitude', $data)) {
+            $data['longitude'] = $data['pickup_longitude'];
+        }
+
+        return $data;
+    }
+
+    private function appendAuditNote(?string $existingNotes, string $label, string $message): string
+    {
+        $trimmedExisting = trim((string) $existingNotes);
+        $entry = sprintf('%s: %s', $label, $message);
+
+        return $trimmedExisting === ''
+            ? $entry
+            : $trimmedExisting . PHP_EOL . PHP_EOL . $entry;
+    }
+
+    private function syncAdditionalWastes(Schedule $schedule, SupportCollection $items): void
+    {
+        $allowed = ['waste_type', 'estimated_weight', 'notes'];
+
+        $items->each(function (array $payload) use ($schedule, $allowed) {
+            $payload = $this->normalizePayload($payload);
+            $delete = (bool) ($payload['_delete'] ?? false);
+            $id = $payload['id'] ?? null;
+
+            unset($payload['_delete'], $payload['id']);
+
+            $filtered = array_intersect_key($payload, array_flip($allowed));
+
+            if ($id !== null) {
+                $waste = $schedule->additionalWastes()->find($id);
+
+                if (!$waste) {
+                    return;
+                }
+
+                if ($delete) {
+                    $waste->delete();
+                    return;
+                }
+
+                $waste->update($filtered);
+                return;
+            }
+
+            if ($delete || empty($filtered['waste_type'])) {
+                return;
+            }
+
+            $schedule->additionalWastes()->create($filtered);
+        });
+    }
+
+    public function destroy(Request $request, int $id)
     {
         $schedule = Schedule::findOrFail($id);
         
         // Authorization: Only mitra who owns it or admin can delete
-        $user = auth()->user();
+        $user = $request->user();
         if ($user->role !== 'admin' && $schedule->mitra_id !== $user->id) {
             return $this->errorResponse('Forbidden: You can only delete your own schedules', 403);
         }

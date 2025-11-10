@@ -38,6 +38,19 @@ class Schedule extends Model
         'latitude',
         'longitude',
         'assigned_to',
+        'assigned_at',
+        'assigned_by',
+        'accepted_at',
+        'rejected_at',
+        'rejection_reason',
+        'confirmed_at',
+        'started_at',
+        'completed_at',
+        'cancelled_at',
+        'completion_notes',
+        'actual_duration',
+        'mitra_rating',
+        'user_rating',
     ];
 
     protected $casts = [

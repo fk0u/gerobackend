@@ -32,6 +32,9 @@ class ScheduleResource extends JsonResource
             'contact_phone' => $this->contact_phone,
             'is_paid' => $this->is_paid ?? false,
             'amount' => $this->safeDecimal($this->amount),
+            'completion_notes' => $this->completion_notes,
+            'actual_duration' => $this->actual_duration,
+            'cancellation_reason' => $this->rejection_reason,
             'additional_wastes' => $this->whenLoaded('additionalWastes', function() {
                 return $this->additionalWastes->map(function($waste) {
                     return [
@@ -45,6 +48,13 @@ class ScheduleResource extends JsonResource
             }),
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
+            'completed_at' => $this->completed_at?->toDateTimeString(),
+            'cancelled_at' => $this->cancelled_at?->toDateTimeString(),
+            'confirmed_at' => $this->confirmed_at?->toDateTimeString(),
+            'started_at' => $this->started_at?->toDateTimeString(),
+            'assigned_at' => $this->assigned_at?->toDateTimeString(),
+            'accepted_at' => $this->accepted_at?->toDateTimeString(),
+            'rejected_at' => $this->rejected_at?->toDateTimeString(),
             // Legacy fields for backward compatibility
             'title' => $this->service_type ?? 'Pickup Service',
             'description' => $this->notes,
