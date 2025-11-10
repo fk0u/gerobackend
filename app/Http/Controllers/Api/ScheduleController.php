@@ -178,6 +178,16 @@ class ScheduleController extends Controller
     public function update(Request $request, int $id)
     {
         $schedule = Schedule::with('additionalWastes')->findOrFail($id);
+        
+        // Authorization: End users can only update their own schedules
+        // Mitra and admin can update any schedule
+        $user = $request->user();
+        if ($user->role === 'end_user' && $schedule->user_id !== $user->id) {
+            return $this->errorResponse(
+                'You can only update your own schedules',
+                403
+            );
+        }
 
         $data = $request->validate([
             'service_type' => 'sometimes|string|max:100',

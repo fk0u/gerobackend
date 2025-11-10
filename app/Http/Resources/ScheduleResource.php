@@ -42,19 +42,19 @@ class ScheduleResource extends JsonResource
                         'waste_type' => $waste->waste_type,
                         'estimated_weight' => $this->safeDecimal($waste->estimated_weight),
                         'notes' => $waste->notes,
-                        'created_at' => $waste->created_at?->toDateTimeString(),
+                        'created_at' => $this->safeDate($waste->created_at),
                     ];
                 });
             }),
-            'created_at' => $this->created_at?->toDateTimeString(),
-            'updated_at' => $this->updated_at?->toDateTimeString(),
-            'completed_at' => $this->completed_at?->toDateTimeString(),
-            'cancelled_at' => $this->cancelled_at?->toDateTimeString(),
-            'confirmed_at' => $this->confirmed_at?->toDateTimeString(),
-            'started_at' => $this->started_at?->toDateTimeString(),
-            'assigned_at' => $this->assigned_at?->toDateTimeString(),
-            'accepted_at' => $this->accepted_at?->toDateTimeString(),
-            'rejected_at' => $this->rejected_at?->toDateTimeString(),
+            'created_at' => $this->safeDate($this->created_at),
+            'updated_at' => $this->safeDate($this->updated_at),
+            'completed_at' => $this->safeDate($this->completed_at),
+            'cancelled_at' => $this->safeDate($this->cancelled_at),
+            'confirmed_at' => $this->safeDate($this->confirmed_at),
+            'started_at' => $this->safeDate($this->started_at),
+            'assigned_at' => $this->safeDate($this->assigned_at),
+            'accepted_at' => $this->safeDate($this->accepted_at),
+            'rejected_at' => $this->safeDate($this->rejected_at),
             // Legacy fields for backward compatibility
             'title' => $this->service_type ?? 'Pickup Service',
             'description' => $this->notes,
@@ -81,6 +81,28 @@ class ScheduleResource extends JsonResource
             return (float) $value;
         }
 
+        return null;
+    }
+
+    /**
+     * Safely convert date to string, handling both Carbon instances and strings
+     */
+    private function safeDate($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        
+        // If already a string, return as-is
+        if (is_string($value)) {
+            return $value;
+        }
+        
+        // If Carbon instance, convert to string
+        if (method_exists($value, 'toDateTimeString')) {
+            return $value->toDateTimeString();
+        }
+        
         return null;
     }
 }

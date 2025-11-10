@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SubscriptionPlanController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ChangelogController;
 
 /**
  * @OA\Get(
@@ -48,6 +49,10 @@ Route::post('/register', [AuthController::class, 'register']);
 
 // Public settings
 Route::get('/settings', [SettingsController::class, 'index']);
+
+// Changelog endpoints (public untuk Swagger UI)
+Route::get('/changelog', [ChangelogController::class, 'index']);
+Route::get('/changelog/stats', [ChangelogController::class, 'stats']);
 Route::get('/settings/api-config', [SettingsController::class, 'apiConfig']);
 
 // Authenticated user info & logout
@@ -59,23 +64,29 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
 	Route::post('/user/change-password', [UserController::class, 'changePassword']);
 	Route::post('/user/upload-profile-image', [UserController::class, 'uploadProfileImage']);
+	
+	// Changelog cache management (authenticated only)
+	Route::post('/changelog/clear-cache', [ChangelogController::class, 'clearCache']);
 });
 
-// Schedules (read public / write protected for mitra or admin)
+// Schedules (read public / write requires authentication)
 Route::get('/schedules', [ScheduleController::class, 'index']);
 Route::get('/schedules/{id}', [ScheduleController::class, 'show']);
-Route::middleware(['auth:sanctum','role:mitra,admin'])->group(function () {
+
+// Authenticated schedule operations
+Route::middleware(['auth:sanctum'])->group(function () {
+	// All authenticated users can create, update (own), and cancel schedules
 	Route::post('/schedules', [ScheduleController::class, 'store']);
+	Route::post('/schedules/mobile', [ScheduleController::class, 'storeMobileFormat']);
 	Route::put('/schedules/{id}', [ScheduleController::class, 'update']);
 	Route::patch('/schedules/{id}', [ScheduleController::class, 'update']);
-	Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy']);
-	Route::post('/schedules/{id}/complete', [ScheduleController::class, 'complete']);
 	Route::post('/schedules/{id}/cancel', [ScheduleController::class, 'cancel']);
-});
-
-// Mobile-friendly schedule endpoints (end_user can create schedules)
-Route::middleware(['auth:sanctum','role:end_user'])->group(function () {
-	Route::post('/schedules/mobile', [ScheduleController::class, 'storeMobileFormat']);
+	
+	// Mitra/Admin only operations
+	Route::middleware(['role:mitra,admin'])->group(function () {
+		Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy']);
+		Route::post('/schedules/{id}/complete', [ScheduleController::class, 'complete']);
+	});
 });
 
 // Tracking (write requires mitra)

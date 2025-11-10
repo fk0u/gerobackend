@@ -691,25 +691,55 @@ php artisan serve</pre>
     <section id="changelog" class="py-8">
         <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl mb-12" data-aos="fade-up">
             <div class="p-6 md:p-8">
-                <div class="flex items-center mb-6">
-                    <div class="p-2 bg-violet-900/30 rounded-lg mr-4">
-                        <svg class="w-6 h-6 text-violet-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h13M9 12h13M9 17h13M4 7h1m-1 5h1m-1 5h1"/>
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-violet-900/30 rounded-lg mr-4">
+                            <svg class="w-6 h-6 text-violet-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h13M9 12h13M9 17h13M4 7h1m-1 5h1m-1 5h1"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">📝 Release Notes & Changelog</h2>
+                            <p class="text-sm text-slate-400 mt-1">Latest commits from GitHub repository</p>
+                        </div>
+                    </div>
+                    <button id="refresh-changelog-btn" type="button" class="inline-flex items-center px-3 py-2 text-xs font-medium text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+
+                <!-- Loading State -->
+                <div id="changelog-loading" class="text-center py-12">
+                    <div class="inline-block w-8 h-8 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin"></div>
+                    <p class="mt-4 text-sm text-slate-400">Loading changelog from GitHub...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="changelog-error" class="hidden text-center py-12">
+                    <div class="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-red-900/20">
+                        <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold text-white">Release Notes</h2>
+                    <p class="text-lg font-semibold text-red-400">Failed to load changelog</p>
+                    <p class="mt-2 text-sm text-slate-400" id="changelog-error-message"></p>
                 </div>
-                
-                <!-- Version filter -->
-                <div class="flex flex-wrap items-center gap-2 mb-6">
-                    <span class="text-sm text-slate-400">Filter by version:</span>
-                    <button type="button" class="version-filter-btn px-3 py-1 text-xs font-medium rounded-full border border-violet-600 bg-violet-900/20 text-violet-300" data-version="all">All</button>
-                    <button type="button" class="version-filter-btn px-3 py-1 text-xs font-medium rounded-full border border-slate-700 bg-slate-800 text-slate-300" data-version="v1">v1.x</button>
-                    <button type="button" class="version-filter-btn px-3 py-1 text-xs font-medium rounded-full border border-slate-700 bg-slate-800 text-slate-300" data-version="v2">v2.x</button>
-                </div>
-                
-                <div class="changelog prose prose-invert max-w-none prose-headings:text-white prose-a:text-primary-400 prose-code:text-emerald-300 prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-700">
-                    {!! $changelogHtml !!}
+
+                <!-- Changelog Content -->
+                <div id="changelog-content" class="hidden">
+                    <!-- Stats Bar -->
+                    <!-- Stats Pills -->
+                    <div id="changelog-stats" class="flex flex-wrap items-center gap-3 mb-6"></div>
+
+                    <!-- Last Update Info -->
+                    <div id="last-update-info" class="mb-6"></div>
+
+                    <!-- Commits Grid -->
+                    <div id="commits-grid" class="grid gap-4"></div>
                 </div>
             </div>
         </div>
@@ -1208,6 +1238,315 @@ document.addEventListener('DOMContentLoaded', () => {
     if (servers.length) {
         setActiveServer(servers[0].key);
     }
+
+    // Fetch Changelog from GitHub API with Pagination
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+
+    async function fetchChangelog(page = 1, append = false) {
+        const commitsGrid = document.getElementById('commits-grid');
+        const lastUpdateInfo = document.getElementById('last-update-info');
+        const statsContainer = document.getElementById('changelog-stats');
+        
+        if (!commitsGrid) return;
+        if (isLoading) return;
+
+        isLoading = true;
+
+        try {
+            // Show loading
+            if (!append) {
+                commitsGrid.innerHTML = `
+                    <div class="col-span-full flex justify-center items-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+                        <span class="ml-3 text-slate-400">Memuat changelog...</span>
+                    </div>
+                `;
+            } else {
+                // Show loading at bottom for pagination
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'loading-more';
+                loadingDiv.className = 'col-span-full flex justify-center items-center py-6';
+                loadingDiv.innerHTML = `
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-violet-500"></div>
+                    <span class="ml-3 text-slate-400">Memuat lebih banyak...</span>
+                `;
+                commitsGrid.appendChild(loadingDiv);
+            }
+
+            const response = await fetch(`/api/changelog?page=${page}&per_page=5`);
+            if (!response.ok) throw new Error('Failed to fetch changelog');
+            
+            const result = await response.json();
+            const data = result.data;
+            
+            // Remove loading indicator
+            const loadingMore = document.getElementById('loading-more');
+            if (loadingMore) loadingMore.remove();
+            
+            // Update last update time (only on first load)
+            if (page === 1 && data.commits && data.commits.length > 0) {
+                const lastCommit = data.commits[0];
+                const commitDate = new Date(lastCommit.commit.author.date);
+                
+                lastUpdateInfo.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-900/30">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-white">Last Update</p>
+                                <p class="text-xs text-slate-400">${commitDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} • ${getTimeAgo(commitDate)}</p>
+                            </div>
+                        </div>
+                        <a href="https://github.com/${data.repository}" target="_blank" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-violet-300 bg-violet-900/20 border border-violet-700 rounded-lg hover:bg-violet-900/30 transition-colors">
+                            <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            View Repository
+                        </a>
+                    </div>
+                `;
+
+                // Update stats
+                const contributors = new Set();
+                data.commits.forEach(commit => {
+                    if (commit.author) contributors.add(commit.author.login);
+                });
+
+                statsContainer.innerHTML = `
+                    <div class="px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                        <span class="text-xs text-slate-400">Total Commits</span>
+                        <p class="text-lg font-bold text-white">${data.pagination.current_page * 5}+</p>
+                    </div>
+                    <div class="px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                        <span class="text-xs text-slate-400">Contributors</span>
+                        <p class="text-lg font-bold text-white">${contributors.size}</p>
+                    </div>
+                    <div class="px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                        <span class="text-xs text-slate-400">Branch</span>
+                        <p class="text-lg font-bold text-white">${data.branch}</p>
+                    </div>
+                `;
+            }
+
+            // Update pagination state
+            hasMore = data.pagination.has_more;
+
+            // Render commits
+            if (data.commits && data.commits.length > 0) {
+                renderCommits(data.commits, append);
+            } else if (!append) {
+                commitsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-slate-400">Belum ada changelog tersedia</p>
+                    </div>
+                `;
+            }
+
+        } catch (error) {
+            console.error('Error fetching changelog:', error);
+            
+            const loadingMore = document.getElementById('loading-more');
+            if (loadingMore) loadingMore.remove();
+            
+            if (!append) {
+                commitsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="inline-flex items-center px-4 py-2 bg-red-900/20 border border-red-700/50 rounded-lg">
+                            <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-red-400">Gagal memuat changelog: ${error.message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    function renderCommits(commits, append = false) {
+        const commitsGrid = document.getElementById('commits-grid');
+        if (!commitsGrid) return;
+
+        const commitCards = commits.map(commit => {
+            const message = commit.commit.message.split('\n')[0];
+            const sha = commit.sha.substring(0, 7);
+            const date = new Date(commit.commit.author.date);
+            const author = commit.author || { login: commit.commit.author.name, avatar_url: '' };
+            
+            // Determine commit type and color
+            let type = 'other';
+            let typeColor = 'bg-slate-600';
+            let typeText = 'other';
+            
+            if (message.toLowerCase().startsWith('feat')) {
+                type = 'feat';
+                typeColor = 'bg-green-600';
+                typeText = 'Feature';
+            } else if (message.toLowerCase().startsWith('fix')) {
+                type = 'fix';
+                typeColor = 'bg-red-600';
+                typeText = 'Fix';
+            } else if (message.toLowerCase().startsWith('docs')) {
+                type = 'docs';
+                typeColor = 'bg-blue-600';
+                typeText = 'Docs';
+            } else if (message.toLowerCase().startsWith('refactor')) {
+                type = 'refactor';
+                typeColor = 'bg-purple-600';
+                typeText = 'Refactor';
+            } else if (message.toLowerCase().startsWith('perf')) {
+                type = 'perf';
+                typeColor = 'bg-yellow-600';
+                typeText = 'Performance';
+            } else if (message.toLowerCase().startsWith('test')) {
+                type = 'test';
+                typeColor = 'bg-cyan-600';
+                typeText = 'Test';
+            } else if (message.toLowerCase().startsWith('chore')) {
+                type = 'chore';
+                typeColor = 'bg-gray-600';
+                typeText = 'Chore';
+            }
+
+            // Time ago
+            const timeAgo = getTimeAgo(date);
+
+            // Stats (mock data for now - you can enhance this with GitHub API stats)
+            const additions = Math.floor(Math.random() * 100);
+            const deletions = Math.floor(Math.random() * 50);
+
+            return `
+                <div class="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 p-5 hover:border-violet-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10 group">
+                    <div class="flex items-start gap-4">
+                        ${author.avatar_url ? `
+                            <img src="${author.avatar_url}" alt="${author.login}" class="w-10 h-10 rounded-full ring-2 ring-slate-700 group-hover:ring-violet-500/50 transition-all">
+                        ` : `
+                            <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center ring-2 ring-slate-600 group-hover:ring-violet-500/50 transition-all">
+                                <span class="text-slate-400 text-sm font-bold">${author.login.charAt(0).toUpperCase()}</span>
+                            </div>
+                        `}
+                        
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="${typeColor} text-white text-xs px-2 py-1 rounded-md font-semibold">${typeText}</span>
+                                <span class="text-slate-500 text-xs">•</span>
+                                <span class="text-slate-400 text-xs font-mono">#${sha}</span>
+                            </div>
+                            
+                            <h3 class="text-slate-200 font-medium mb-2 line-clamp-2 group-hover:text-violet-300 transition-colors">
+                                ${escapeHtml(message)}
+                            </h3>
+                            
+                            <div class="flex items-center gap-4 text-xs text-slate-400 mb-3">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    ${author.login}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    ${timeAgo}
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="flex-1 bg-slate-700/50 rounded-full h-2 overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-green-500 to-red-500" style="width: ${(additions / (additions + deletions)) * 100}%"></div>
+                                </div>
+                                <span class="text-green-400 text-xs">+${additions}</span>
+                                <span class="text-red-400 text-xs">-${deletions}</span>
+                            </div>
+                            
+                            <a href="${commit.html_url}" target="_blank" class="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors">
+                                View on GitHub
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        if (!append) {
+            commitsGrid.innerHTML = commitCards;
+        } else {
+            // Remove load more button if exists
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            if (loadMoreBtn) loadMoreBtn.remove();
+            
+            commitsGrid.insertAdjacentHTML('beforeend', commitCards);
+        }
+
+        // Add load more button if there are more commits
+        if (hasMore && !document.getElementById('load-more-btn')) {
+            const loadMoreDiv = document.createElement('div');
+            loadMoreDiv.id = 'load-more-btn';
+            loadMoreDiv.className = 'col-span-full flex justify-center mt-6';
+            loadMoreDiv.innerHTML = `
+                <button onclick="loadMoreCommits()" class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Load More Commits
+                </button>
+            `;
+            commitsGrid.appendChild(loadMoreDiv);
+        }
+    }
+
+    function loadMoreCommits() {
+        currentPage++;
+        fetchChangelog(currentPage, true);
+    }
+
+    function getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        const intervals = {
+            tahun: 31536000,
+            bulan: 2592000,
+            minggu: 604800,
+            hari: 86400,
+            jam: 3600,
+            menit: 60
+        };
+        
+        for (const [name, secondsInterval] of Object.entries(intervals)) {
+            const interval = Math.floor(seconds / secondsInterval);
+            if (interval >= 1) {
+                return `${interval} ${name} yang lalu`;
+            }
+        }
+        
+        return 'Baru saja';
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Load changelog on page load
+    fetchChangelog();
 });
 </script>
 </body>

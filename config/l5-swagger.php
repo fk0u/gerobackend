@@ -315,4 +315,47 @@ return [
             'L5_SWAGGER_CONST_HOST' => env('L5_SWAGGER_CONST_HOST', 'http://my-default-host.com'),
         ],
     ],
+    
+    /*
+     |--------------------------------------------------------------------------
+     | GitHub Changelog Integration
+     |--------------------------------------------------------------------------
+     |
+     | Konfigurasi untuk menampilkan changelog dari GitHub commits di Swagger UI
+     |
+     */
+    'changelog' => [
+        /*
+         * Enable/disable changelog feature
+         */
+        'enabled' => env('SWAGGER_CHANGELOG_ENABLED', true),
+        
+        /*
+         * GitHub repository in format: owner/repo
+         */
+        'github_repo' => env('GITHUB_REPO', 'fk0u/gerobackend'),
+        
+        /*
+         * GitHub Personal Access Token (opsional untuk public repo)
+         * Generate di: https://github.com/settings/tokens
+         * Permissions: repo (private) atau public_repo (public)
+         */
+        'github_token' => env('GITHUB_TOKEN', null),
+        
+        /*
+         * Cache TTL dalam detik (default: 1 jam)
+         * Untuk menghindari GitHub API rate limit
+         */
+        'cache_ttl' => env('CHANGELOG_CACHE_TTL', 3600),
+        
+        /*
+         * Jumlah commit yang ditampilkan
+         */
+        'limit' => env('CHANGELOG_LIMIT', 20),
+        
+        /*
+         * Default branch
+         */
+        'default_branch' => env('CHANGELOG_DEFAULT_BRANCH', 'main'),
+    ],
 ];
