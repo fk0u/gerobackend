@@ -50,6 +50,9 @@ Route::post('/register', [AuthController::class, 'register']);
 // Public settings
 Route::get('/settings', [SettingsController::class, 'index']);
 
+// Public subscription plans (anyone can view plans)
+Route::get('/subscription-plans', [SubscriptionPlanController::class, 'index']);
+
 // Changelog endpoints (public untuk Swagger UI)
 Route::get('/changelog', [ChangelogController::class, 'index']);
 Route::get('/changelog/stats', [ChangelogController::class, 'stats']);
@@ -157,6 +160,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Balance (auth)
 Route::middleware(['auth:sanctum'])->group(function () {
+	// Main balance endpoint
+	Route::get('/balance', [BalanceController::class, 'index']);
 	Route::get('/balance/ledger', [BalanceController::class, 'ledger']);
 	Route::get('/balance/summary', [BalanceController::class, 'summary']);
 	Route::post('/balance/topup', [BalanceController::class, 'topup']);
@@ -165,6 +170,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Chat (auth)
 Route::middleware(['auth:sanctum'])->group(function () {
+	// Conversations endpoint (alias for chats)
+	Route::get('/chat/conversations', [ChatController::class, 'index']);
 	Route::get('/chats', [ChatController::class, 'index']);
 	Route::get('/chats/{id}', [ChatController::class, 'show']);
 	Route::post('/chats', [ChatController::class, 'store']);
@@ -175,8 +182,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Feedback (auth required)
 Route::middleware(['auth:sanctum'])->group(function () {
+	// Support both singular and plural
+	Route::get('/feedbacks', [FeedbackController::class, 'index']);
 	Route::get('/feedback', [FeedbackController::class, 'index']);
+	Route::get('/feedbacks/{id}', [FeedbackController::class, 'show']);
 	Route::get('/feedback/{id}', [FeedbackController::class, 'show']);
+	Route::post('/feedbacks', [FeedbackController::class, 'store']);
 	Route::post('/feedback', [FeedbackController::class, 'store']);
 	Route::put('/feedback/{id}', [FeedbackController::class, 'update']);
 	Route::patch('/feedback/{id}', [FeedbackController::class, 'update']);
@@ -185,6 +196,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Subscription routes (auth required)
 Route::middleware(['auth:sanctum'])->group(function () {
+    // Current subscription status
+    Route::get('/subscription', [SubscriptionController::class, 'getCurrentSubscription']);
+    
     Route::get('/subscription/plans', [SubscriptionPlanController::class, 'index']);
     Route::get('/subscription/plans/{plan}', [SubscriptionPlanController::class, 'show']);
     Route::post('/subscription/plans', [SubscriptionPlanController::class, 'store'])->middleware('role:admin');
@@ -202,6 +216,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Dashboard summaries (auth + role scope)
 Route::middleware(['auth:sanctum'])->group(function () {
+	// General dashboard endpoint
+	Route::get('/dashboard', [DashboardController::class, 'index']);
 	Route::get('/dashboard/mitra/{id}', [DashboardController::class, 'mitra'])->middleware('role:mitra,admin');
 	Route::get('/dashboard/user/{id}', [DashboardController::class, 'user'])->middleware('role:end_user,admin');
 });
@@ -218,6 +234,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Admin endpoints (admin only)
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    // User management (simplified)
+    Route::get('/users', [UserController::class, 'index']);
+    
     Route::get('/admin/stats', [AdminController::class, 'getStatistics']);
     
     // Users management
@@ -238,6 +257,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
 // Admin settings
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/settings/admin', [SettingsController::class, 'admin']);
     Route::put('/settings', [SettingsController::class, 'update']);
     Route::patch('/settings', [SettingsController::class, 'update']);
     Route::delete('/settings/{key}', [SettingsController::class, 'destroy']);

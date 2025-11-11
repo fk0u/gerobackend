@@ -14,6 +14,42 @@ class UserController extends Controller
 {
     use ApiResponseTrait;
 
+    /**
+     * List all users (admin only)
+     */
+    public function index(Request $request)
+    {
+        $query = \App\Models\User::query();
+        
+        // Filter by role
+        if ($request->filled('role')) {
+            $query->where('role', $request->string('role'));
+        }
+        
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%$search%")
+                  ->orWhere('email', 'LIKE', "%$search%");
+            });
+        }
+        
+        $perPage = min(max($request->integer('per_page', 15), 1), 100);
+        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        return response()->json([
+            'success' => true,
+            'data' => UserResource::collection($users),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ]
+        ]);
+    }
+
     public function updateProfile(Request $request)
     {
         $user = Auth::user();

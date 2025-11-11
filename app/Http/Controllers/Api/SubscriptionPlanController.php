@@ -49,16 +49,16 @@ class SubscriptionPlanController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:subscription_plans,slug|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
             'features' => 'nullable|array',
-            'max_schedules_per_month' => 'nullable|integer|min:0',
-            'max_pickup_locations' => 'nullable|integer|min:0',
+            'max_orders_per_month' => 'nullable|integer|min:0',
+            'max_tracking_locations' => 'nullable|integer|min:0',
             'priority_support' => 'boolean',
+            'advanced_analytics' => 'boolean',
+            'custom_branding' => 'boolean',
             'is_active' => 'boolean',
-            'sort_order' => 'nullable|integer',
         ]);
 
         $plan = SubscriptionPlan::create($data);
@@ -76,16 +76,16 @@ class SubscriptionPlanController extends Controller
 
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'slug' => 'sometimes|string|max:255|unique:subscription_plans,slug,' . $id,
             'description' => 'sometimes|nullable|string',
             'price' => 'sometimes|numeric|min:0',
             'billing_cycle' => 'sometimes|in:monthly,yearly',
             'features' => 'sometimes|nullable|array',
-            'max_schedules_per_month' => 'sometimes|nullable|integer|min:0',
-            'max_pickup_locations' => 'sometimes|nullable|integer|min:0',
+            'max_orders_per_month' => 'sometimes|nullable|integer|min:0',
+            'max_tracking_locations' => 'sometimes|nullable|integer|min:0',
             'priority_support' => 'sometimes|boolean',
+            'advanced_analytics' => 'sometimes|boolean',
+            'custom_branding' => 'sometimes|boolean',
             'is_active' => 'sometimes|boolean',
-            'sort_order' => 'sometimes|nullable|integer',
         ]);
 
         $plan->update($data);

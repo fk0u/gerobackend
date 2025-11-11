@@ -14,6 +14,33 @@ class BalanceController extends Controller
 {
     use ApiResponseTrait;
     
+    /**
+     * Get current user's balance
+     */
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        
+        $credit = BalanceEntry::where('user_id', $user->id)
+            ->where('direction', 'credit')
+            ->sum('amount');
+        $debit = BalanceEntry::where('user_id', $user->id)
+            ->where('direction', 'debit')
+            ->sum('amount');
+        $balance = $credit - $debit;
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user_id' => $user->id,
+                'current_balance' => $balance,
+                'total_credit' => $credit,
+                'total_debit' => $debit,
+                'currency' => 'IDR',
+            ],
+        ]);
+    }
+    
     public function ledger(Request $request) {
         $request->validate([
             'user_id' => 'required|exists:users,id',

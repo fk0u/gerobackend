@@ -6,10 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Notification;
 use App\Models\BalanceEntry;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /**
+     * Get dashboard statistics for authenticated user
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        
+        if ($user->role === 'mitra') {
+            return $this->mitra($user->id);
+        } else {
+            return $this->user($user->id);
+        }
+    }
+
     public function mitra(int $mitraId)
     {
         $today = Carbon::today();

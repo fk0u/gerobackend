@@ -59,6 +59,34 @@ class SettingsController extends Controller
     }
 
     /**
+     * Get admin panel settings
+     */
+    public function admin(Request $request)
+    {
+        $adminSettings = [
+            'system' => [
+                'php_version' => PHP_VERSION,
+                'laravel_version' => app()->version(),
+                'database' => config('database.default'),
+                'cache_driver' => config('cache.default'),
+                'queue_driver' => config('queue.default'),
+            ],
+            'stats' => [
+                'total_users' => \App\Models\User::count(),
+                'total_schedules' => \App\Models\Schedule::count(),
+                'total_orders' => \App\Models\Order::count(),
+            ],
+            'config' => [
+                'app_env' => config('app.env'),
+                'app_debug' => config('app.debug'),
+                'app_url' => config('app.url'),
+            ],
+        ];
+
+        return $this->successResponse($adminSettings, 'Admin settings retrieved successfully');
+    }
+
+    /**
      * Get API configuration for mobile app
      */
     public function apiConfig()
