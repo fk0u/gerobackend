@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Gerobaks REST API
-  version: 1.0.2
+  version: 1.0.5
   description: |
     **EN**: Official REST API specification for the Gerobaks waste management platform.
     **ID**: Spesifikasi resmi REST API untuk platform pengelolaan sampah Gerobaks.
@@ -62,6 +62,34 @@ tags:
     description: |
       **EN**: Aggregated metrics for dashboards.
       **ID**: Metrik teragregasi untuk dashboard.
+  - name: Users
+    description: |
+      **EN**: User management and profile operations.
+      **ID**: Manajemen pengguna dan operasi profil.
+  - name: Settings
+    description: |
+      **EN**: Application settings and configuration.
+      **ID**: Pengaturan dan konfigurasi aplikasi.
+  - name: Subscription Plans
+    description: |
+      **EN**: Subscription plan management for premium features.
+      **ID**: Manajemen paket langganan untuk fitur premium.
+  - name: Subscriptions
+    description: |
+      **EN**: User subscription lifecycle and management.
+      **ID**: Siklus hidup dan manajemen langganan pengguna.
+  - name: Feedback
+    description: |
+      **EN**: User feedback and bug reports submission.
+      **ID**: Pengiriman feedback pengguna dan laporan bug.
+  - name: Reports
+    description: |
+      **EN**: Incident reports and complaint management.
+      **ID**: Manajemen laporan insiden dan keluhan.
+  - name: Admin
+    description: |
+      **EN**: Administrative operations and system management (admin only).
+      **ID**: Operasi administratif dan manajemen sistem (hanya admin).
 paths:
   /api/health:
     get:
@@ -301,6 +329,200 @@ paths:
         '401': { description: Unauthorized / Tidak terotorisasi }
         '422':
           description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Schedules]
+      summary: Delete schedule / Hapus jadwal
+      description: |
+        **EN**: Delete a schedule. Only pending or cancelled schedules can be deleted. Requires mitra (who owns it) or admin role.
+        **ID**: Menghapus jadwal. Hanya jadwal pending atau cancelled yang dapat dihapus. Memerlukan peran mitra (pemilik) atau admin.
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Schedule deleted successfully.
+            **ID**: Jadwal berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403':
+          description: |
+            **EN**: Forbidden - Only mitra who owns the schedule or admin can delete.
+            **ID**: Terlarang - Hanya mitra pemilik jadwal atau admin yang dapat menghapus.
+        '404': { description: Schedule not found / Jadwal tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot delete schedule in current status (in_progress or completed).
+            **ID**: Tidak dapat menghapus jadwal dengan status saat ini (in_progress atau completed).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/schedules/mobile:
+    post:
+      tags: [Schedules]
+      summary: Create schedule (mobile format) / Buat jadwal (format mobile)
+      description: |
+        **EN**: Create a new schedule using mobile app format (Indonesian field names). Requires authentication.
+        **ID**: Membuat jadwal baru menggunakan format aplikasi mobile (nama field bahasa Indonesia). Memerlukan autentikasi.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleMobileCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Schedule created successfully.
+            **ID**: Jadwal berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Jadwal berhasil dibuat
+                  data:
+                    $ref: '#/components/schemas/Schedule'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/schedules/{id}/cancel:
+    post:
+      tags: [Schedules]
+      summary: Cancel schedule / Batalkan jadwal
+      description: |
+        **EN**: Cancel a schedule with a reason. Cannot cancel completed or already cancelled schedules. Requires authentication.
+        **ID**: Membatalkan jadwal dengan alasan. Tidak dapat membatalkan jadwal yang sudah completed atau cancelled. Memerlukan autentikasi.
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cancellation_reason]
+              properties:
+                cancellation_reason:
+                  type: string
+                  maxLength: 500
+                  example: Perubahan rencana mendadak
+                  description: |
+                    **EN**: Reason for cancellation.
+                    **ID**: Alasan pembatalan.
+      responses:
+        '200':
+          description: |
+            **EN**: Schedule cancelled successfully.
+            **ID**: Jadwal berhasil dibatalkan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Schedule'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '404': { description: Schedule not found / Jadwal tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot cancel schedule in current status.
+            **ID**: Tidak dapat membatalkan jadwal dengan status saat ini.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/schedules/{id}/complete:
+    post:
+      tags: [Schedules]
+      summary: Complete schedule / Selesaikan jadwal
+      description: |
+        **EN**: Mark a schedule as completed with optional completion details. Requires mitra or admin role.
+        **ID**: Menandai jadwal sebagai selesai dengan detail penyelesaian opsional. Memerlukan peran mitra atau admin.
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actual_weight:
+                  type: number
+                  format: float
+                  minimum: 0
+                  example: 15.5
+                  description: |
+                    **EN**: Actual waste weight collected (kg).
+                    **ID**: Berat sampah aktual yang dikumpulkan (kg).
+                completion_notes:
+                  type: string
+                  maxLength: 1000
+                  example: Penjemputan berjalan lancar
+                  description: |
+                    **EN**: Notes about the completion.
+                    **ID**: Catatan tentang penyelesaian.
+                photo_url:
+                  type: string
+                  maxLength: 500
+                  example: https://storage.example.com/photos/completion-123.jpg
+                  description: |
+                    **EN**: URL of completion photo.
+                    **ID**: URL foto penyelesaian.
+      responses:
+        '200':
+          description: |
+            **EN**: Schedule completed successfully.
+            **ID**: Jadwal berhasil diselesaikan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Schedule'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403':
+          description: |
+            **EN**: Forbidden - Requires mitra or admin role.
+            **ID**: Terlarang - Memerlukan peran mitra atau admin.
+        '404': { description: Schedule not found / Jadwal tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot complete schedule in current status.
+            **ID**: Tidak dapat menyelesaikan jadwal dengan status saat ini.
           content:
             application/json:
               schema:
@@ -1040,6 +1262,691 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/balance:
+    get:
+      tags: [Balance]
+      summary: Get current user balance / Dapatkan saldo pengguna saat ini
+      description: |
+        **EN**: Get the authenticated user's current balance including total credit, debit, and net balance.
+        **ID**: Mendapatkan saldo pengguna yang terautentikasi termasuk total kredit, debit, dan saldo bersih.
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Balance retrieved successfully.
+            **ID**: Saldo berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      user_id:
+                        type: integer
+                        example: 1
+                      current_balance:
+                        type: number
+                        example: 50000
+                        description: |
+                          **EN**: Net balance (credit - debit).
+                          **ID**: Saldo bersih (kredit - debit).
+                      total_credit:
+                        type: number
+                        example: 100000
+                      total_debit:
+                        type: number
+                        example: 50000
+                      currency:
+                        type: string
+                        example: IDR
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List all users / Daftar semua pengguna
+      description: |
+        **EN**: Get paginated list of all users with search and filter capabilities. Admin only.
+        **ID**: Mendapatkan daftar semua pengguna dengan kemampuan pencarian dan filter. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [end_user, mitra, admin]
+          description: |
+            **EN**: Filter by user role.
+            **ID**: Filter berdasarkan peran pengguna.
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: |
+            **EN**: Search by name or email.
+            **ID**: Cari berdasarkan nama atau email.
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 100
+          description: |
+            **EN**: Items per page.
+            **ID**: Jumlah item per halaman.
+      responses:
+        '200':
+          description: |
+            **EN**: Users list retrieved successfully.
+            **ID**: Daftar pengguna berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+  /api/settings:
+    get:
+      tags: [Settings]
+      summary: Get application settings / Dapatkan pengaturan aplikasi
+      description: |
+        **EN**: Get public application settings and configuration.
+        **ID**: Mendapatkan pengaturan dan konfigurasi aplikasi publik.
+      responses:
+        '200':
+          description: |
+            **EN**: Settings retrieved successfully.
+            **ID**: Pengaturan berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      app_name:
+                        type: string
+                        example: Gerobaks
+                      app_version:
+                        type: string
+                        example: "1.0.0"
+                      api_version:
+                        type: string
+                        example: v1
+                      maintenance_mode:
+                        type: boolean
+                        example: false
+                      supported_payment_methods:
+                        type: array
+                        items:
+                          type: string
+                        example: ["cash", "transfer", "wallet"]
+                      supported_service_types:
+                        type: array
+                        items:
+                          type: string
+                      default_estimation_duration:
+                        type: integer
+                        example: 60
+                      max_estimation_duration:
+                        type: integer
+                        example: 480
+                      min_estimation_duration:
+                        type: integer
+                        example: 15
+  /api/settings/admin:
+    get:
+      tags: [Settings]
+      summary: Get admin panel settings / Dapatkan pengaturan panel admin
+      description: |
+        **EN**: Get system information and statistics for admin panel. Admin only.
+        **ID**: Mendapatkan informasi sistem dan statistik untuk panel admin. Hanya admin.
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Admin settings retrieved successfully.
+            **ID**: Pengaturan admin berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      system:
+                        type: object
+                        properties:
+                          php_version:
+                            type: string
+                          laravel_version:
+                            type: string
+                          database:
+                            type: string
+                          cache_driver:
+                            type: string
+                          queue_driver:
+                            type: string
+                      stats:
+                        type: object
+                        properties:
+                          total_users:
+                            type: integer
+                          total_schedules:
+                            type: integer
+                          total_orders:
+                            type: integer
+                      config:
+                        type: object
+                        properties:
+                          app_env:
+                            type: string
+                          app_debug:
+                            type: boolean
+                          app_url:
+                            type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+  /api/subscription-plans:
+    get:
+      tags: [Subscription Plans]
+      summary: List subscription plans / Daftar paket langganan
+      description: |
+        **EN**: Get list of available subscription plans. Public endpoint.
+        **ID**: Mendapatkan daftar paket langganan yang tersedia. Endpoint publik.
+      parameters:
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: |
+            **EN**: Filter by active status. If not provided, returns only active plans.
+            **ID**: Filter berdasarkan status aktif. Jika tidak disediakan, hanya mengembalikan paket aktif.
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription plans retrieved successfully.
+            **ID**: Paket langganan berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubscriptionPlan'
+    post:
+      tags: [Subscription Plans]
+      summary: Create subscription plan / Buat paket langganan
+      description: |
+        **EN**: Create a new subscription plan. Admin only.
+        **ID**: Membuat paket langganan baru. Hanya admin.
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionPlanCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Subscription plan created successfully.
+            **ID**: Paket langganan berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SubscriptionPlan'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/subscription-plans/{id}:
+    get:
+      tags: [Subscription Plans]
+      summary: Get subscription plan detail / Dapatkan detail paket langganan
+      description: |
+        **EN**: Get detailed information about a specific subscription plan.
+        **ID**: Mendapatkan informasi detail tentang paket langganan tertentu.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: Subscription plan ID.
+            **ID**: ID paket langganan.
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription plan retrieved successfully.
+            **ID**: Paket langganan berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SubscriptionPlan'
+        '404': { description: Not found / Tidak ditemukan }
+    patch:
+      tags: [Subscription Plans]
+      summary: Update subscription plan / Perbarui paket langganan
+      description: |
+        **EN**: Update an existing subscription plan. Admin only.
+        **ID**: Memperbarui paket langganan yang ada. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: Subscription plan ID.
+            **ID**: ID paket langganan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionPlanUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription plan updated successfully.
+            **ID**: Paket langganan berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SubscriptionPlan'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Subscription Plans]
+      summary: Delete subscription plan / Hapus paket langganan
+      description: |
+        **EN**: Delete a subscription plan. Cannot delete plans with active subscriptions. Admin only.
+        **ID**: Menghapus paket langganan. Tidak dapat menghapus paket dengan langganan aktif. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: Subscription plan ID.
+            **ID**: ID paket langganan.
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription plan deleted successfully.
+            **ID**: Paket langganan berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot delete plan with active subscriptions.
+            **ID**: Tidak dapat menghapus paket dengan langganan aktif.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/subscription:
+    get:
+      tags: [Subscriptions]
+      summary: Get current subscription / Langganan saat ini
+      description: |
+        **EN**: Retrieve current active subscription for authenticated user.
+        **ID**: Mengambil langganan aktif saat ini untuk pengguna terautentikasi.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Data Scope**: User sees only their own subscription
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Current subscription details (may be null if no active subscription).
+            **ID**: Detail langganan saat ini (bisa null jika tidak ada langganan aktif).
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/Subscription'
+                  - type: 'null'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/subscription/current:
+    get:
+      tags: [Subscriptions]
+      summary: Get current subscription / Langganan saat ini
+      description: |
+        **EN**: Retrieve current active subscription for authenticated user (alias endpoint).
+        **ID**: Mengambil langganan aktif saat ini untuk pengguna terautentikasi (alias endpoint).
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Current subscription details.
+            **ID**: Detail langganan saat ini.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/Subscription'
+                  - type: 'null'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/subscription/history:
+    get:
+      tags: [Subscriptions]
+      summary: Get subscription history / Riwayat langganan
+      description: |
+        **EN**: Retrieve all subscription records for authenticated user (active and expired).
+        **ID**: Mengambil semua record langganan untuk pengguna terautentikasi (aktif dan kadaluarsa).
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Data Scope**: User sees only their own history
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated subscription history.
+            **ID**: Riwayat langganan dengan paginasi.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/subscription/subscribe:
+    post:
+      tags: [Subscriptions]
+      summary: Subscribe to plan / Berlangganan paket
+      description: |
+        **EN**: Create new subscription for authenticated user. Requires payment if plan is not free.
+        **ID**: Membuat langganan baru untuk pengguna terautentikasi. Memerlukan pembayaran jika paket tidak gratis.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Business Rules**:
+          - Cannot subscribe if already have active subscription
+          - Must provide payment proof for paid plans
+          - Free plans activated immediately
+          - Paid plans require admin confirmation
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Subscription created successfully.
+            **ID**: Langganan berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: |
+            **EN**: Validation error or business rule violation (e.g., already have active subscription).
+            **ID**: Validasi gagal atau pelanggaran aturan bisnis (misal sudah ada langganan aktif).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/subscription/{subscription}/activate:
+    post:
+      tags: [Subscriptions]
+      summary: Activate subscription / Aktivasi langganan
+      description: |
+        **EN**: Activate pending subscription after payment verification. Admin only.
+        **ID**: Mengaktifkan langganan pending setelah verifikasi pembayaran. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Business Rule**: Can only activate pending subscriptions
+        - **Error 403**: If non-admin tries to activate
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: subscription
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: Subscription ID.
+            **ID**: ID langganan.
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription activated successfully.
+            **ID**: Langganan berhasil diaktifkan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot activate subscription in current status.
+            **ID**: Tidak dapat mengaktifkan langganan dengan status saat ini.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/subscription/{subscription}/cancel:
+    post:
+      tags: [Subscriptions]
+      summary: Cancel subscription / Batalkan langganan
+      description: |
+        **EN**: Cancel active subscription. User can cancel their own, admin can cancel any.
+        **ID**: Membatalkan langganan aktif. Pengguna bisa batalkan milik sendiri, admin bisa batalkan semua.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Owner or admin
+        - **Business Rules**:
+          - Can only cancel active subscriptions
+          - Cancelled subscription ends at period end (no immediate termination)
+          - Cancellation reason required
+        - **Error 403**: If user tries to cancel others' subscription
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: subscription
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: |
+                    **EN**: Cancellation reason.
+                    **ID**: Alasan pembatalan.
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription cancelled successfully.
+            **ID**: Langganan berhasil dibatalkan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Not the owner / Terlarang - Bukan pemilik }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/subscription/{subscription}:
+    delete:
+      tags: [Subscriptions]
+      summary: Delete subscription / Hapus langganan
+      description: |
+        **EN**: Permanently delete subscription record. Admin only. Cannot delete active subscriptions.
+        **ID**: Menghapus record langganan permanen. Hanya admin. Tidak dapat menghapus langganan aktif.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Business Rule**: Can only delete cancelled or expired subscriptions
+        - **Error 403**: If non-admin tries to delete
+        - **Error 422**: If trying to delete active subscription
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: subscription
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: |
+            **EN**: Subscription deleted successfully.
+            **ID**: Langganan berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot delete active subscription.
+            **ID**: Tidak dapat menghapus langganan aktif.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/chats:
     get:
       tags: [Chats]
@@ -1161,6 +2068,1010 @@ paths:
               schema:
                 $ref: '#/components/schemas/DashboardUserMetrics'
         '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: General dashboard / Dashboard umum
+      description: |
+        **EN**: General dashboard metrics based on user role. Returns role-specific data.
+        **ID**: Metrik dashboard umum berdasarkan role pengguna. Mengembalikan data sesuai role.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Data Scope**: Role-based (end_user sees their data, mitra sees assigned data, admin sees all)
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Dashboard metrics payload.
+            **ID**: Data metrik dashboard.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    enum: [end_user, mitra, admin]
+                  metrics:
+                    type: object
+                    description: |
+                      **EN**: Role-specific metrics.
+                      **ID**: Metrik sesuai role.
+        '401': { description: Unauthorized / Tidak terotorisasi }
+  /api/feedback:
+    get:
+      tags: [Feedback]
+      summary: List feedback / Daftar feedback
+      description: |
+        **EN**: List all feedback submitted by authenticated user or all feedback (admin).
+        **ID**: Daftar semua feedback yang disubmit oleh pengguna atau semua feedback (admin).
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Data Scope**: Users see their own feedback, admin sees all
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, reviewed, resolved]
+          description: |
+            **EN**: Filter by feedback status.
+            **ID**: Filter berdasarkan status feedback.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated feedback list.
+            **ID**: Daftar feedback dengan paginasi.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Feedback'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+    post:
+      tags: [Feedback]
+      summary: Submit feedback / Kirim feedback
+      description: |
+        **EN**: Submit new feedback or bug report. All authenticated users can submit.
+        **ID**: Mengirim feedback atau laporan bug baru. Semua pengguna terautentikasi dapat mengirim.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Validation**: Title and message required, category optional
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Feedback submitted successfully.
+            **ID**: Feedback berhasil dikirim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/feedback/{id}:
+    get:
+      tags: [Feedback]
+      summary: Get feedback detail / Detail feedback
+      description: |
+        **EN**: Retrieve specific feedback. Users can only view their own, admin can view all.
+        **ID**: Mengambil detail feedback tertentu. Pengguna hanya bisa lihat miliknya, admin bisa lihat semua.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Owner or admin
+        - **Error 403**: If user tries to access feedback from other users
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: Feedback ID.
+            **ID**: ID feedback.
+      responses:
+        '200':
+          description: |
+            **EN**: Feedback details.
+            **ID**: Detail feedback.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Not the owner / Terlarang - Bukan pemilik }
+        '404': { description: Not found / Tidak ditemukan }
+    put:
+      tags: [Feedback]
+      summary: Update feedback / Update feedback
+      description: |
+        **EN**: Update feedback content. Only owner can update their feedback.
+        **ID**: Memperbarui konten feedback. Hanya pemilik yang dapat memperbarui.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Owner only
+        - **Business Rule**: Cannot update resolved feedback
+        - **Error 403**: If user tries to update others' feedback
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Feedback updated successfully.
+            **ID**: Feedback berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Not the owner / Terlarang - Bukan pemilik }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [Feedback]
+      summary: Partial update feedback / Update sebagian feedback
+      description: |
+        **EN**: Partially update feedback fields. Owner only.
+        **ID**: Memperbarui sebagian field feedback. Hanya pemilik.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Feedback updated successfully.
+            **ID**: Feedback berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Not the owner / Terlarang - Bukan pemilik }
+        '404': { description: Not found / Tidak ditemukan }
+    delete:
+      tags: [Feedback]
+      summary: Delete feedback / Hapus feedback
+      description: |
+        **EN**: Delete feedback. Owner can delete their own feedback.
+        **ID**: Menghapus feedback. Pemilik dapat menghapus feedback mereka.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Owner only
+        - **Error 403**: If user tries to delete others' feedback
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: |
+            **EN**: Feedback deleted successfully.
+            **ID**: Feedback berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Not the owner / Terlarang - Bukan pemilik }
+        '404': { description: Tidak ditemukan }
+  /api/reports:
+    get:
+      tags: [Reports]
+      summary: List reports / Daftar laporan
+      description: |
+        **EN**: List all reports. Users see their own, admin sees all.
+        **ID**: Daftar semua laporan. Pengguna melihat miliknya, admin melihat semua.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Data Scope**: User sees own reports, admin sees all
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [incident, complaint, suggestion, other]
+          description: |
+            **EN**: Filter by report type.
+            **ID**: Filter berdasarkan tipe laporan.
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, investigating, resolved, closed]
+          description: |
+            **EN**: Filter by report status.
+            **ID**: Filter berdasarkan status laporan.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated reports list.
+            **ID**: Daftar laporan dengan paginasi.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+    post:
+      tags: [Reports]
+      summary: Submit report / Kirim laporan
+      description: |
+        **EN**: Submit new report. All authenticated users can report.
+        **ID**: Mengirim laporan baru. Semua pengguna terautentikasi dapat melaporkan.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: All authenticated users
+        - **Validation**: Title and description required, type and priority optional
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: Report submitted successfully.
+            **ID**: Laporan berhasil dikirim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/reports/{id}:
+    get:
+      tags: [Reports]
+      summary: Get report detail / Detail laporan
+      description: |
+        **EN**: Retrieve specific report. Users can only view their own, admin can view all.
+        **ID**: Mengambil detail laporan tertentu. Pengguna hanya bisa lihat miliknya, admin bisa lihat semua.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Owner or admin
+        - **Error 403**: If user tries to access others' report
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: Report ID.
+            **ID**: ID laporan.
+      responses:
+        '200':
+          description: |
+            **EN**: Report details.
+            **ID**: Detail laporan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Not the owner / Terlarang - Bukan pemilik }
+        '404': { description: Not found / Tidak ditemukan }
+    put:
+      tags: [Reports]
+      summary: Update report / Update laporan
+      description: |
+        **EN**: Update report status and resolution. Admin only.
+        **ID**: Memperbarui status dan resolusi laporan. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Error 403**: If non-admin tries to update
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Report updated successfully.
+            **ID**: Laporan berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [Reports]
+      summary: Partial update report / Update sebagian laporan
+      description: |
+        **EN**: Partially update report fields. Admin only.
+        **ID**: Memperbarui sebagian field laporan. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Report updated successfully.
+            **ID**: Laporan berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+    delete:
+      tags: [Reports]
+      summary: Delete report / Hapus laporan
+      description: |
+        **EN**: Delete report permanently. Admin only.
+        **ID**: Menghapus laporan permanen. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Error 403**: If non-admin tries to delete
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: |
+            **EN**: Report deleted successfully.
+            **ID**: Laporan berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+  /api/admin/stats:
+    get:
+      tags: [Admin]
+      summary: System statistics / Statistik sistem
+      description: |
+        **EN**: Get comprehensive system statistics. Admin only.
+        **ID**: Mengambil statistik sistem komprehensif. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Data**: Total users, orders, revenue, active schedules, etc.
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: System statistics.
+            **ID**: Statistik sistem.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users / Daftar semua pengguna
+      description: |
+        **EN**: Get all users with filters. Admin only.
+        **ID**: Mengambil semua pengguna dengan filter. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Filters**: Role, search by name/email, status
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [end_user, mitra, admin]
+          description: |
+            **EN**: Filter by user role.
+            **ID**: Filter berdasarkan role pengguna.
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: |
+            **EN**: Search by name or email.
+            **ID**: Cari berdasarkan nama atau email.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: |
+            **EN**: Paginated users list.
+            **ID**: Daftar pengguna dengan paginasi.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+    post:
+      tags: [Admin]
+      summary: Create user / Buat pengguna
+      description: |
+        **EN**: Create new user account. Admin only.
+        **ID**: Membuat akun pengguna baru. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Validation**: Email must be unique, password min 8 characters
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: |
+            **EN**: User created successfully.
+            **ID**: Pengguna berhasil dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/users/{id}:
+    get:
+      tags: [Admin]
+      summary: Get user detail / Detail pengguna
+      description: |
+        **EN**: Get detailed user information. Admin only.
+        **ID**: Mengambil informasi detail pengguna. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: |
+            **EN**: User ID.
+            **ID**: ID pengguna.
+      responses:
+        '200':
+          description: |
+            **EN**: User details.
+            **ID**: Detail pengguna.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+    put:
+      tags: [Admin]
+      summary: Update user / Update pengguna
+      description: |
+        **EN**: Update user account information. Admin only.
+        **ID**: Memperbarui informasi akun pengguna. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: User updated successfully.
+            **ID**: Pengguna berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [Admin]
+      summary: Partial update user / Update sebagian pengguna
+      description: |
+        **EN**: Partially update user fields. Admin only.
+        **ID**: Memperbarui sebagian field pengguna. Hanya admin.
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: User updated successfully.
+            **ID**: Pengguna berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+    delete:
+      tags: [Admin]
+      summary: Delete user / Hapus pengguna
+      description: |
+        **EN**: Delete user account. Admin only. Cannot delete users with active orders/subscriptions.
+        **ID**: Menghapus akun pengguna. Hanya admin. Tidak bisa hapus pengguna dengan order/langganan aktif.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Business Rule**: Cannot delete if user has active orders or subscriptions
+      security:
+        - SanctumToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: |
+            **EN**: User deleted successfully.
+            **ID**: Pengguna berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '404': { description: Not found / Tidak ditemukan }
+        '422':
+          description: |
+            **EN**: Cannot delete user with active dependencies.
+            **ID**: Tidak dapat menghapus pengguna dengan dependensi aktif.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/logs:
+    get:
+      tags: [Admin]
+      summary: System logs / Log sistem
+      description: |
+        **EN**: Retrieve system logs. Admin only.
+        **ID**: Mengambil log sistem. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Filters**: Level (info, warning, error), date range, limit
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: level
+          schema:
+            type: string
+            enum: [info, warning, error, critical]
+          description: |
+            **EN**: Filter by log level.
+            **ID**: Filter berdasarkan level log.
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: |
+            **EN**: Start date (YYYY-MM-DD).
+            **ID**: Tanggal mulai (YYYY-MM-DD).
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: |
+            **EN**: End date (YYYY-MM-DD).
+            **ID**: Tanggal akhir (YYYY-MM-DD).
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: |
+            **EN**: System logs.
+            **ID**: Log sistem.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LogEntry'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+    delete:
+      tags: [Admin]
+      summary: Clear logs / Hapus log
+      description: |
+        **EN**: Clear all system logs. Admin only. Use with caution.
+        **ID**: Menghapus semua log sistem. Hanya admin. Gunakan dengan hati-hati.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Warning**: This action is irreversible
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: Logs cleared successfully.
+            **ID**: Log berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  deleted_count:
+                    type: integer
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+  /api/admin/export:
+    get:
+      tags: [Admin]
+      summary: Export data / Ekspor data
+      description: |
+        **EN**: Export system data to CSV/JSON. Admin only.
+        **ID**: Mengekspor data sistem ke CSV/JSON. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Options**: Export users, orders, schedules, payments
+      security:
+        - SanctumToken: []
+      parameters:
+        - in: query
+          name: type
+          required: true
+          schema:
+            type: string
+            enum: [users, orders, schedules, payments, all]
+          description: |
+            **EN**: Data type to export.
+            **ID**: Tipe data yang akan diekspor.
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [csv, json]
+            default: json
+          description: |
+            **EN**: Export format.
+            **ID**: Format ekspor.
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: |
+            **EN**: Start date filter (YYYY-MM-DD).
+            **ID**: Filter tanggal mulai (YYYY-MM-DD).
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: |
+            **EN**: End date filter (YYYY-MM-DD).
+            **ID**: Filter tanggal akhir (YYYY-MM-DD).
+      responses:
+        '200':
+          description: |
+            **EN**: Exported data file.
+            **ID**: File data yang diekspor.
+          content:
+            application/json:
+              schema:
+                type: object
+            text/csv:
+              schema:
+                type: string
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/notifications:
+    post:
+      tags: [Admin]
+      summary: Send notification / Kirim notifikasi
+      description: |
+        **EN**: Send notification to users. Admin only.
+        **ID**: Mengirim notifikasi ke pengguna. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Options**: Send to all, specific role, or specific user
+      security:
+        - SanctumToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminNotificationRequest'
+      responses:
+        '200':
+          description: |
+            **EN**: Notification sent successfully.
+            **ID**: Notifikasi berhasil dikirim.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  sent_count:
+                    type: integer
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
+        '422':
+          description: Validation error / Validasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/health:
+    get:
+      tags: [Admin]
+      summary: System health / Kesehatan sistem
+      description: |
+        **EN**: Get comprehensive system health status. Admin only.
+        **ID**: Mengambil status kesehatan sistem komprehensif. Hanya admin.
+        
+        **Security Rules**:
+        - **Authentication**: Required (Sanctum Bearer Token)
+        - **Authorization**: Admin only
+        - **Data**: Database status, disk usage, memory, response time, queue status
+      security:
+        - SanctumToken: []
+      responses:
+        '200':
+          description: |
+            **EN**: System health metrics.
+            **ID**: Metrik kesehatan sistem.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+        '401': { description: Unauthorized / Tidak terotorisasi }
+        '403': { description: Forbidden - Admin only / Terlarang - Hanya admin }
 components:
   securitySchemes:
     SanctumToken:
@@ -1471,6 +3382,76 @@ components:
           type: string
           format: date-time
           nullable: true
+    ScheduleMobileCreateRequest:
+      type: object
+      required: [alamat, tanggal, waktu, jenis_layanan, koordinat]
+      properties:
+        alamat:
+          type: string
+          maxLength: 500
+          example: Jl. Merdeka No. 123, Jakarta Pusat
+          description: |
+            **EN**: Pickup address.
+            **ID**: Alamat penjemputan.
+        tanggal:
+          type: string
+          format: date
+          example: "2025-11-15"
+          description: |
+            **EN**: Pickup date (YYYY-MM-DD format).
+            **ID**: Tanggal penjemputan (format YYYY-MM-DD).
+        waktu:
+          type: string
+          pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+          example: "08:00"
+          description: |
+            **EN**: Pickup time (HH:MM format, 24-hour).
+            **ID**: Waktu penjemputan (format HH:MM, 24 jam).
+        catatan:
+          type: string
+          maxLength: 1000
+          nullable: true
+          example: Harap datang tepat waktu
+          description: |
+            **EN**: Additional notes.
+            **ID**: Catatan tambahan.
+        koordinat:
+          type: object
+          required: [lat, lng]
+          properties:
+            lat:
+              type: number
+              format: float
+              minimum: -90
+              maximum: 90
+              example: -6.2088
+              description: |
+                **EN**: Latitude coordinate.
+                **ID**: Koordinat lintang.
+            lng:
+              type: number
+              format: float
+              minimum: -180
+              maximum: 180
+              example: 106.8456
+              description: |
+                **EN**: Longitude coordinate.
+                **ID**: Koordinat bujur.
+        jenis_layanan:
+          type: string
+          maxLength: 100
+          example: Pickup Sampah Organik
+          description: |
+            **EN**: Service type.
+            **ID**: Jenis layanan.
+        metode_pembayaran:
+          type: string
+          enum: [cash, transfer, wallet]
+          nullable: true
+          example: cash
+          description: |
+            **EN**: Payment method (cash, transfer, wallet).
+            **ID**: Metode pembayaran (cash, transfer, wallet).
     Tracking:
       type: object
       properties:
@@ -2093,3 +4074,528 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/BalanceEntry'
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: Premium Plan
+        description:
+          type: string
+          nullable: true
+          example: Full access to all premium features
+        price:
+          type: number
+          format: float
+          example: 99000
+        billing_cycle:
+          type: string
+          enum: [monthly, yearly]
+          example: monthly
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+          example: ["Priority Support", "Advanced Analytics", "Custom Branding"]
+        max_orders_per_month:
+          type: integer
+          nullable: true
+          example: 100
+        max_tracking_locations:
+          type: integer
+          nullable: true
+          example: 50
+        priority_support:
+          type: boolean
+          example: true
+        advanced_analytics:
+          type: boolean
+          example: true
+        custom_branding:
+          type: boolean
+          example: false
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SubscriptionPlanCreateRequest:
+      type: object
+      required: [name, price, billing_cycle]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: Premium Plan
+        description:
+          type: string
+          nullable: true
+          example: Full access to all premium features
+        price:
+          type: number
+          format: float
+          minimum: 0
+          example: 99000
+        billing_cycle:
+          type: string
+          enum: [monthly, yearly]
+          example: monthly
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+        max_orders_per_month:
+          type: integer
+          nullable: true
+          minimum: 0
+          example: 100
+        max_tracking_locations:
+          type: integer
+          nullable: true
+          minimum: 0
+          example: 50
+        priority_support:
+          type: boolean
+          example: true
+        advanced_analytics:
+          type: boolean
+          example: true
+        custom_branding:
+          type: boolean
+          example: false
+        is_active:
+          type: boolean
+          example: true
+    SubscriptionPlanUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          format: float
+          minimum: 0
+        billing_cycle:
+          type: string
+          enum: [monthly, yearly]
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+        max_orders_per_month:
+          type: integer
+          nullable: true
+          minimum: 0
+        max_tracking_locations:
+          type: integer
+          nullable: true
+          minimum: 0
+        priority_support:
+          type: boolean
+        advanced_analytics:
+          type: boolean
+        custom_branding:
+          type: boolean
+        is_active:
+          type: boolean
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 123
+        subscription_plan_id:
+          type: integer
+          example: 2
+        status:
+          type: string
+          enum: [pending, active, cancelled, expired]
+          example: active
+        start_date:
+          type: string
+          format: date
+          example: '2024-01-01'
+        end_date:
+          type: string
+          format: date
+          nullable: true
+          example: '2024-12-31'
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        plan:
+          $ref: '#/components/schemas/SubscriptionPlan'
+    SubscriptionCreateRequest:
+      type: object
+      required:
+        - subscription_plan_id
+      properties:
+        subscription_plan_id:
+          type: integer
+          description: |
+            **EN**: ID of the subscription plan to subscribe to.
+            **ID**: ID paket langganan yang akan dilanggani.
+        payment_proof_url:
+          type: string
+          format: uri
+          nullable: true
+          description: |
+            **EN**: Payment proof URL (required for paid plans).
+            **ID**: URL bukti pembayaran (wajib untuk paket berbayar).
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 123
+        title:
+          type: string
+          example: 'Bug in tracking feature'
+        message:
+          type: string
+          example: 'The tracking map does not load properly'
+        category:
+          type: string
+          enum: [bug, feature_request, improvement, other]
+          example: bug
+        status:
+          type: string
+          enum: [pending, reviewed, resolved]
+          example: pending
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+    FeedbackCreateRequest:
+      type: object
+      required:
+        - title
+        - message
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: 'Bug in tracking feature'
+        message:
+          type: string
+          example: 'The tracking map does not load properly'
+        category:
+          type: string
+          enum: [bug, feature_request, improvement, other]
+          default: other
+    FeedbackUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+        category:
+          type: string
+          enum: [bug, feature_request, improvement, other]
+        status:
+          type: string
+          enum: [pending, reviewed, resolved]
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 123
+        title:
+          type: string
+          example: 'Trash not collected'
+        description:
+          type: string
+          example: 'Schedule was confirmed but trash was not picked up'
+        type:
+          type: string
+          enum: [incident, complaint, suggestion, other]
+          example: complaint
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          example: high
+        status:
+          type: string
+          enum: [pending, investigating, resolved, closed]
+          example: pending
+        resolution:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        user:
+          $ref: '#/components/schemas/User'
+    ReportCreateRequest:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: 'Trash not collected'
+        description:
+          type: string
+          example: 'Schedule was confirmed but trash was not picked up'
+        type:
+          type: string
+          enum: [incident, complaint, suggestion, other]
+          default: complaint
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          default: medium
+    ReportUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, investigating, resolved, closed]
+        resolution:
+          type: string
+          maxLength: 1000
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+    AdminStats:
+      type: object
+      properties:
+        total_users:
+          type: integer
+          example: 1523
+        total_orders:
+          type: integer
+          example: 8942
+        total_revenue:
+          type: number
+          format: float
+          example: 45678900.50
+        active_schedules:
+          type: integer
+          example: 234
+        pending_payments:
+          type: integer
+          example: 12
+        active_subscriptions:
+          type: integer
+          example: 89
+        users_by_role:
+          type: object
+          properties:
+            end_user:
+              type: integer
+              example: 1200
+            mitra:
+              type: integer
+              example: 300
+            admin:
+              type: integer
+              example: 23
+    UserCreateRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - role
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: 'John Doe'
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: 'john@example.com'
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: 'password123'
+        role:
+          type: string
+          enum: [end_user, mitra, admin]
+          example: end_user
+        phone:
+          type: string
+          nullable: true
+          maxLength: 20
+          example: '+6281234567890'
+        address:
+          type: string
+          nullable: true
+          maxLength: 500
+    UserUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        role:
+          type: string
+          enum: [end_user, mitra, admin]
+        phone:
+          type: string
+          nullable: true
+          maxLength: 20
+        address:
+          type: string
+          nullable: true
+          maxLength: 500
+        is_active:
+          type: boolean
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        level:
+          type: string
+          enum: [info, warning, error, critical]
+          example: error
+        message:
+          type: string
+          example: 'Failed to send notification'
+        context:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    AdminNotificationRequest:
+      type: object
+      required:
+        - title
+        - message
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: 'System Maintenance'
+        message:
+          type: string
+          example: 'System will be down for maintenance on Sunday'
+        target:
+          type: string
+          enum: [all, role, user]
+          default: all
+          description: |
+            **EN**: Notification target (all users, specific role, or specific user).
+            **ID**: Target notifikasi (semua pengguna, role tertentu, atau pengguna tertentu).
+        role:
+          type: string
+          enum: [end_user, mitra, admin]
+          nullable: true
+          description: |
+            **EN**: Target role (required if target=role).
+            **ID**: Role target (wajib jika target=role).
+        user_id:
+          type: integer
+          nullable: true
+          description: |
+            **EN**: Target user ID (required if target=user).
+            **ID**: ID pengguna target (wajib jika target=user).
+    SystemHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, critical]
+          example: healthy
+        database:
+          type: object
+          properties:
+            connected:
+              type: boolean
+            response_time_ms:
+              type: number
+              format: float
+        disk_usage:
+          type: object
+          properties:
+            used_gb:
+              type: number
+              format: float
+            total_gb:
+              type: number
+              format: float
+            percentage:
+              type: number
+              format: float
+        memory_usage:
+          type: object
+          properties:
+            used_mb:
+              type: number
+              format: float
+            total_mb:
+              type: number
+              format: float
+            percentage:
+              type: number
+              format: float
+        queue_status:
+          type: object
+          properties:
+            pending_jobs:
+              type: integer
+            failed_jobs:
+              type: integer
+        uptime_seconds:
+          type: integer
+          example: 864000
+        checked_at:
+          type: string
+          format: date-time
+
